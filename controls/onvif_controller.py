@@ -1,14 +1,20 @@
+from queue import Queue
 from onvif import ONVIFCamera
-from PyQt5.QtCore import QObject, QTimer, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 from zeep import xsd
 from typing import Literal
 from config import Config
+from models import Command
 
 
-class OnvifController(QObject):
+class OnvifController(QThread):
     '''
     Класс для управления камерой через протокол ONVIF.
-    Так же, имеет в себе таймер, чтобы отложено обновлять (синхронизировать) показатели после нажатия кнопок.
+    В начале приложения создается 2 потока данного класса, на каждую сторону.
+    После создания, потоки начинают ждать комманду.
+    Когда GUI готов - OnvifVM помещает команду на подключение в очередь.
+    При подключении применяет начальные настройки из конфиг.
+    Содержит в себе таймер для отложенной проверки и синхронизации параметров с камерой.
     '''
 
     onvifChangeNotification = pyqtSignal(str)
@@ -18,32 +24,20 @@ class OnvifController(QObject):
         self.config = config
         self.system_id = system_id
         self.slot = slot
-        self.is_online = False
-        self.ip = ''
-        self.port = 0
-        self.login = ''
-        self.password = ''
         self.camera = None
-        self.image_settings = None
-        self.brightness = None
-        self.contrast = None
-        self.saturation = None
-
-        self.update_settings()
-        self._set_initial_camera_settings()
-        self._send_change_notification()
-
-    def update_settings(self):
         self.disconnect()
-        self.ip = self.config.get(self.system_id, self.slot, 'camera', 'ip')
-        self.port = self.config.get(self.system_id, self.slot, 'camera', 'onvif_port')
-        self.login = self.config.get(self.system_id, self.slot, 'camera', 'login')
-        self.password = self.config.get(self.system_id, self.slot, 'camera', 'password')
-        self._connect()
 
-    def _connect(self):
-        if self.camera:
-            self.disconnect()
+        self.commands = Queue()
+        self._running = False
+        
+        self.feedback_timer = QTimer(self)
+        self.feedback_timer.timeout.connect(self.check_changes)
+
+        self.wait_for_command()
+
+    def connect(self):
+        self.disconnect()
+        self._update_settings()
         try:
             self.camera = ONVIFCamera(self.ip, self.port, self.login, self.password)
             self.media_service = self.camera.create_media_service()
@@ -55,10 +49,19 @@ class OnvifController(QObject):
             self.image_settings = self.imaging_service.GetImagingSettings(get_req)
             if self.image_settings:
                 self.is_online = True
+                self._set_initial_camera_settings()
+                self._send_change_notification()
+                print(f'[ONVIF].{self.slot}: УСПЕШНОЕ ПОДКЛЮЧЕНИЕ')
         except Exception as e:
+            self.disconnect()
             print(f'[ONVIF].{self.slot}: подключение к не удалось: {e}')
 
     def disconnect(self):
+        self.is_online = False
+        self.brightness = None
+        self.contrast = None
+        self.saturation = None
+        self.image_settings = None
         if self.camera:
             print(f'[ONVIF].{self.slot}: Сработал disconnect()')
             self.camera = None
@@ -66,12 +69,13 @@ class OnvifController(QObject):
             self.imaging_service = None
             self.video_sources = None
             self.video_source_token = None
-            self.image_settings = None
-            self.is_online = False
-            self.brightness = None
-            self.contrast = None
-            self.saturation = None
             self._send_change_notification()
+
+    def _update_settings(self):
+        self.ip = self.config.get(self.system_id, self.slot, 'camera', 'ip')
+        self.port = self.config.get(self.system_id, self.slot, 'camera', 'onvif_port')
+        self.login = self.config.get(self.system_id, self.slot, 'camera', 'login')
+        self.password = self.config.get(self.system_id, self.slot, 'camera', 'password')
 
     def _set_initial_camera_settings(self):
         if not self.is_online:
@@ -79,10 +83,6 @@ class OnvifController(QObject):
         brightness = self.config.get_camera_settings(self.system_id, self.slot, 'brightness')
         contrast = self.config.get_camera_settings(self.system_id, self.slot, 'contrast')
         saturation = self.config.get_camera_settings(self.system_id, self.slot, 'colorsaturation')
-
-        self.brightness = None
-        self.contrast = None
-        self.saturation = None
 
         if hasattr(self.image_settings, 'Brightness'):
             self.image_settings.Brightness = brightness
@@ -99,9 +99,7 @@ class OnvifController(QObject):
 
     def switch_system(self, new_system):
         self.system_id = new_system
-        self.update_settings()
-        self._connect()
-        self._set_initial_camera_settings()
+        self.connect()
 
     def _check_ready(self):
         if not self.is_online or not self.image_settings:
@@ -160,6 +158,8 @@ class OnvifController(QObject):
 
     def check_changes(self):
         print('сработала проверка')
+        if self.feedback_timer.isActive():
+            self.feedback_timer.stop()
         last_values = [self.brightness, self.contrast, self.saturation]
         new_values = [getattr(self.image_settings, 'Brightness', None), 
                       getattr(self.image_settings, 'Contrast', None), 
@@ -190,3 +190,33 @@ class OnvifController(QObject):
 
     def get_current_params(self):
         return self.brightness, self.contrast, self.saturation
+
+    def add_command(self, cmd: Command):
+        self.commands.put(cmd)
+        if self.feedback_timer.isActive():
+            self.feedback_timer.stop()
+        self.feedback_timer.start(1500)
+
+    def process_command(self, cmd: Command):
+        method = getattr(self, cmd.command, None)
+        if not callable(method):
+            print(f"[ONVIF].{self.slot}: ❌Метод {cmd.command} не найден")
+            return
+        if cmd.value is not None:
+            method(cmd.value)
+        else:
+            method()
+    
+    def wait_for_command(self):
+        self._running = True
+        self.start()
+
+    def stop(self):
+        self._running = False
+        self.commands.put(None)
+    
+    def run(self):
+        while self._running:
+            command = self.commands.get()
+            if command is not None:
+                self.process_command(command)

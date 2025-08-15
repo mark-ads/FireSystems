@@ -13,11 +13,6 @@ ApplicationWindow {
     property var systemsModel: ["Система 1", "Система 2"]
     property int currentScreen: 0
 
-    Component.onCompleted: {
-        viewmodel.onGuiReady()
-    }
-
-
     StackLayout {
         id: screenStack
         anchors.fill: parent

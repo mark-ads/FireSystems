@@ -2,11 +2,11 @@ from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QIcon
 from config import Config
-from controls import onvif_controls
 from zond.systems_controller import SystemsController
 from camera.camera_stream import VideoStream
 from camera.image_provider import CameraImageProvider
-from controls.onvif_controls import OnvifControls
+from controls.onvif_controller import OnvifController
+from controls.dvrip_controller import DvripController
 from viewmodels.viewmodel import Viewmodel
 
 streams = []
@@ -23,9 +23,11 @@ def create_app(app):
     print('program ip = ' + config.get_sys_settings('ip'))
 
     '''
-    onvif_controls = OnvifControls(config, 'system_1')
-    onvif_controls.wait_for_command()
-    viewmodel = Viewmodel(onvif_controls)
+    dvrip_front = DvripController(config, 'system_1', 'front')
+    dvrip_back = DvripController(config, 'system_1', 'back')
+    onvif_front = OnvifController(config, 'system_1', 'front')
+    onvif_back = OnvifController(config, 'system_1', 'back')
+    viewmodel = Viewmodel(onvif_front, onvif_back, dvrip_front, dvrip_back)
     globals()["viewmodel"] = viewmodel
 
     engine = QQmlApplicationEngine()

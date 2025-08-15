@@ -1,15 +1,15 @@
-from controls.onvif_controller import OnvifController
+from controls.dvrip_controller import DvripController
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty, QVariant
 from models import Command
 from typing import Literal
 
 
-class OnvifVM(QObject):
+class DvripVM(QObject):
     '''
-    ViewModel для экрана Systems и протокола ONVIF.
+    ViewModel для экрана Systems и протокола DVRIP.
     Передает актуальные параметры настроек в QML.
     Хранит в себе актуальные данные для отображения.
-    Содержит в себе 2 ONVIF контроллера.
+    Содержит в себе два DVRIP контроллера.
     '''
 
     frontBrightnessChanged = pyqtSignal()
@@ -19,7 +19,7 @@ class OnvifVM(QObject):
     backContrastChanged = pyqtSignal()
     backSaturationChanged = pyqtSignal()
 
-    def __init__(self, front: OnvifController, back: OnvifController):
+    def __init__(self, front: DvripController, back: DvripController):
         super().__init__()
         self.front = front
         self.back = back
@@ -31,15 +31,8 @@ class OnvifVM(QObject):
         self._back_contrast = None
         self._back_saturation = None
 
-        self.front.onvifChangeNotification.connect(self.update_current_params)
-        self.back.onvifChangeNotification.connect(self.update_current_params)
-
-    @pyqtSlot()
-    def connect(self):
-        cmd_front = Command(target='front', command='connect')
-        self.front.commands.put(cmd_front)
-        cmd_back = Command(target='back', command='process_connection')
-        self.back.commands.put(cmd_back)
+        self.front.dvripChangeNotification.connect(self.update_current_params)
+        self.back.dvripChangeNotification.connect(self.update_current_params)
 
     # -----------
     @pyqtProperty(QVariant, notify=frontBrightnessChanged)
@@ -102,6 +95,15 @@ class OnvifVM(QObject):
             self._back_saturation = value
             self.backSaturationChanged.emit()
     # -----------
+
+    @pyqtSlot()
+    def connect(self):
+        print(f'[DVRIP VM]: CONNECTION trying...')
+        cmd_front = Command(target='front', command='connect')
+        self.front.commands.put(cmd_front)
+        cmd_back = Command(target='back', command='connect')
+        self.back.commands.put(cmd_back)
+
     @pyqtSlot(str, str)
     def forward_command(self, slot: Literal['front', 'back'], command: str):
         cmd = Command(
@@ -120,7 +122,6 @@ class OnvifVM(QObject):
             command=command,
             value=value
             )
-
         if slot == 'front':
             self.front.add_command(cmd)
         elif slot == 'back':
@@ -129,14 +130,10 @@ class OnvifVM(QObject):
     @pyqtSlot(str)
     def update_current_params(self, slot: Literal['front', 'back']):
         if slot == 'front':
-            b, c, s = self.front.get_current_params()
-            self.frontBrightness = b
-            self.frontContrast = c
-            self.frontSaturation = s
-            print('front:', b, c, s)
+            f, e, g, ag, ae, m, f = self.front.get_current_params()
+            #self.frontBrightness = b
+            print('[DVRIP VM]front:', f, e, g, ag, ae, m, f)
         else:
-            b, c, s = self.back.get_current_params()
-            self.backBrightness = b
-            self.backContrast = c
-            self.backSaturation = s
-            print('back:', b, c, s)
+            f, e, g, ag, ae, m, f = self.back.get_current_params()
+            #self.backBrightness = b
+            print('[DVRIP VM]back:', f, e, g, ag, ae, m, f)

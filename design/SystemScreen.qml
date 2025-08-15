@@ -6,6 +6,11 @@ Item {
     width: 1920
     height: 1080
 
+
+    Component.onCompleted: {
+        viewmodel.onGuiReady()
+    }
+
     Rectangle {
         id: mainRectangle
         anchors.fill: parent
@@ -505,9 +510,40 @@ Item {
 
 
                 Rectangle {
+                    id: frontAutoExpo
+                    x: 35
+                    y: 10
+                    width: 190
+                    height: 30
+                    color: "#ffffff"
+                    SwitchDelegate {
+                        id: frontAutoExpoButton
+                        x: 120
+                        y: 0
+                        width: 70
+                        height: 30
+                        text: qsTr("Перевернуть")
+                        display: AbstractButton.IconOnly
+                    }
+
+                    Text {
+                        id: frontAutoExpoText
+                        x: 0
+                        y: 0
+                        width: 115
+                        height: 30
+                        text: qsTr("Авто выдержка")
+                        font.pixelSize: 16
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.bold: false
+                    }
+                }
+
+                Rectangle {
                     id: frontAutoISO
                     x: 45
-                    y: 20
+                    y: 50
                     width: 180
                     height: 30
                     color: "#ffffff"
@@ -533,10 +569,11 @@ Item {
                     }
                 }
 
+
                 Rectangle {
                     id: frontFlip
                     x: 45
-                    y: 60
+                    y: 90
                     width: 180
                     height: 30
                     color: "#ffffff"
@@ -565,10 +602,11 @@ Item {
 
 
 
+
                 Rectangle {
                     id: frontMirror
                     x: 45
-                    y: 100
+                    y: 130
                     width: 180
                     height: 30
                     color: "#ffffff"
@@ -594,10 +632,11 @@ Item {
                     }
                 }
 
+
                 Rectangle {
                     id: frontFPS
                     x: 45
-                    y: 140
+                    y: 170
                     width: 180
                     height: 60
                     color: "#ffffff"
@@ -687,6 +726,7 @@ Item {
                         }
                     }
                 }
+
 
             }
         }
@@ -1071,10 +1111,73 @@ Item {
                 width: 269
                 height: 251
                 color: "#ffffff"
+
+                Rectangle {
+                    id: backAutoExpo
+                    x: 35
+                    y: 10
+                    width: 190
+                    height: 30
+                    color: "#ffffff"
+                    SwitchDelegate {
+                        id: backAutoExpoButton
+                        x: 120
+                        y: 0
+                        width: 70
+                        height: 30
+                        text: qsTr("Перевернуть")
+                        display: AbstractButton.IconOnly
+                    }
+
+                    Text {
+                        id: backAutoExpoText
+                        x: 0
+                        y: 0
+                        width: 115
+                        height: 30
+                        text: qsTr("Авто выдержка")
+                        font.pixelSize: 16
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.bold: false
+                    }
+                }
+
+                Rectangle {
+                    id: backAutoISO
+                    x: 45
+                    y: 50
+                    width: 180
+                    height: 30
+                    color: "#ffffff"
+                    SwitchDelegate {
+                        id: backAutoISOButton
+                        x: 110
+                        y: 0
+                        width: 70
+                        height: 30
+                        text: qsTr("Перевернуть")
+                        display: AbstractButton.IconOnly
+                    }
+
+                    Text {
+                        id: backAutoISOText
+                        width: 110
+                        height: 30
+                        text: qsTr("Авто ISO")
+                        font.pixelSize: 16
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.bold: false
+                    }
+                }
+
+
+
                 Rectangle {
                     id: backFlip
                     x: 45
-                    y: 25
+                    y: 90
                     width: 180
                     height: 30
                     color: "#ffffff"
@@ -1100,10 +1203,13 @@ Item {
                     }
                 }
 
+
+
+
                 Rectangle {
                     id: backMirror
                     x: 45
-                    y: 85
+                    y: 130
                     width: 180
                     height: 30
                     color: "#ffffff"
@@ -1129,10 +1235,13 @@ Item {
                     }
                 }
 
+
+
+
                 Rectangle {
                     id: backFPS
                     x: 45
-                    y: 140
+                    y: 170
                     width: 180
                     height: 60
                     color: "#ffffff"
@@ -1220,6 +1329,8 @@ Item {
                         }
                     }
                 }
+
+
             }
 
             Rectangle {
