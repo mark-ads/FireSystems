@@ -72,17 +72,17 @@ class OnvifController(QThread):
             self._send_change_notification()
 
     def _update_settings(self):
-        self.ip = self.config.get(self.system_id, self.slot, 'camera', 'ip')
-        self.port = self.config.get(self.system_id, self.slot, 'camera', 'onvif_port')
-        self.login = self.config.get(self.system_id, self.slot, 'camera', 'login')
-        self.password = self.config.get(self.system_id, self.slot, 'camera', 'password')
+        self.ip = self.config.get_str(self.system_id, self.slot, 'camera', 'ip')
+        self.port = self.config.get_str(self.system_id, self.slot, 'camera', 'onvif_port')
+        self.login = self.config.get_str(self.system_id, self.slot, 'camera', 'login')
+        self.password = self.config.get_str(self.system_id, self.slot, 'camera', 'password')
 
     def _set_initial_camera_settings(self):
         if not self.is_online:
             return
-        brightness = self.config.get_camera_settings(self.system_id, self.slot, 'brightness')
-        contrast = self.config.get_camera_settings(self.system_id, self.slot, 'contrast')
-        saturation = self.config.get_camera_settings(self.system_id, self.slot, 'colorsaturation')
+        brightness = self.config.get_onvif_settings(self.system_id, self.slot, 'brightness')
+        contrast = self.config.get_onvif_settings(self.system_id, self.slot, 'contrast')
+        saturation = self.config.get_onvif_settings(self.system_id, self.slot, 'colorsaturation')
 
         if hasattr(self.image_settings, 'Brightness'):
             self.image_settings.Brightness = brightness
@@ -157,9 +157,8 @@ class OnvifController(QThread):
         self._update_param('ColorSaturation', value)
 
     def check_changes(self):
-        print('сработала проверка')
-        if self.feedback_timer.isActive():
-            self.feedback_timer.stop()
+        print(f'[ONVIF].{self.slot}: сработала проверка')
+        self.feedback_timer.stop()
         last_values = [self.brightness, self.contrast, self.saturation]
         new_values = [getattr(self.image_settings, 'Brightness', None), 
                       getattr(self.image_settings, 'Contrast', None), 
@@ -193,11 +192,10 @@ class OnvifController(QThread):
 
     def add_command(self, cmd: Command):
         self.commands.put(cmd)
-        if self.feedback_timer.isActive():
-            self.feedback_timer.stop()
+        self.feedback_timer.stop()
         self.feedback_timer.start(1500)
 
-    def process_command(self, cmd: Command):
+    def _exec_command(self, cmd: Command):
         method = getattr(self, cmd.command, None)
         if not callable(method):
             print(f"[ONVIF].{self.slot}: ❌Метод {cmd.command} не найден")
@@ -219,4 +217,4 @@ class OnvifController(QThread):
         while self._running:
             command = self.commands.get()
             if command is not None:
-                self.process_command(command)
+                self._exec_command(command)

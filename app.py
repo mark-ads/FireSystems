@@ -23,10 +23,10 @@ def create_app(app):
     print('program ip = ' + config.get_sys_settings('ip'))
 
     '''
-    dvrip_front = DvripController(config, 'system_1', 'front')
-    dvrip_back = DvripController(config, 'system_1', 'back')
     onvif_front = OnvifController(config, 'system_1', 'front')
     onvif_back = OnvifController(config, 'system_1', 'back')
+    dvrip_front = DvripController(config, 'system_1', 'front')
+    dvrip_back = DvripController(config, 'system_1', 'back')
     viewmodel = Viewmodel(onvif_front, onvif_back, dvrip_front, dvrip_back)
     globals()["viewmodel"] = viewmodel
 

@@ -38,7 +38,7 @@ class OnvifVM(QObject):
     def connect(self):
         cmd_front = Command(target='front', command='connect')
         self.front.commands.put(cmd_front)
-        cmd_back = Command(target='back', command='process_connection')
+        cmd_back = Command(target='back', command='connect')
         self.back.commands.put(cmd_back)
 
     # -----------

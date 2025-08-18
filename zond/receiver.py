@@ -72,7 +72,7 @@ class Receiver(QThread):
         for old_ip, (backend, system_id, slot) in self.ip_map.items():
             # Получаем обновлённый IP из настроек
             try:
-                ip = self.config.get(system_id, slot, 'arduino', 'ip')
+                ip = self.config.get_str(system_id, slot, 'arduino', 'ip')
             except KeyError as e:
                 print(f"Receiver: ⚠️ Ошибка получения IP из настроек для {system_id}.{slot}: {e}")
                 continue

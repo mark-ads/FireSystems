@@ -28,7 +28,7 @@ class Backend(QObject):
         #print(f'{self.system_id}.{self.position} создан. ip = {self.ip}')
 
     def update_settings(self):
-        self.ip = self.config.get(self.system_id, self.slot, 'arduino', 'ip')
+        self.ip = self.config.get_str(self.system_id, self.slot, 'arduino', 'ip')
         #print(f'Настройки {self.system_id}.{self.position} изменены. Новое значение {self.ip}')
 
     @pyqtSlot()

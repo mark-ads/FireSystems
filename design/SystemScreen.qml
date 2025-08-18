@@ -165,7 +165,7 @@ Item {
                     y: 53
                     width: 270
                     height: 27
-                    text: qsTr("УГОЛ ПОВОРОТА")
+                    text: "УГОЛ ПОВОРОТА"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -189,6 +189,10 @@ Item {
                     height: 60
                     color: "#ffffff"
                     border.width: 0
+                    enabled: (viewmodel.dvrip.frontExpo !== null
+                              && viewmodel.dvrip.frontExpo !== undefined
+                              && frontAutoExpoButton.checked)
+                    opacity: enabled ? 1.0 : 0.5
 
                     Rectangle {
                         id: frontExpositionTitle
@@ -204,11 +208,13 @@ Item {
                             y: 0
                             width: 180
                             height: 30
-                            text: qsTr("Выдержка")
+                            text: "Выдержка"
                             font.pixelSize: 20
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.bold: true
+                            enabled: frontExposition.enabled
+                            opacity: frontExposition.opacity
                         }
                     }
 
@@ -227,10 +233,16 @@ Item {
                             y: 1
                             width: 29
                             height: 28
-                            text: qsTr("-")
+                            text: "-"
                             layer.smooth: true
                             font.bold: true
                             font.pointSize: 18
+                            enabled: frontExposition.enabled
+                            opacity: frontExposition.opacity
+                            onReleased: {
+                                frontExpositionIndicatorText.text = (parseInt(frontExpositionIndicatorText.text) || 0) - 1
+                                frontExpositionIndicatorText.commitValue()
+                            }
                         }
                     }
 
@@ -247,11 +259,54 @@ Item {
                             id: frontExpositionIndicatorText
                             width: 120
                             height: 30
-                            text: qsTr("35.0")
                             font.pixelSize: 20
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.bold: false
+                            wrapMode: Text.NoWrap
+                            selectByMouse: true
+                            focus: false
+                            text: (viewmodel.dvrip.frontExpo !== null && viewmodel.dvrip.frontExpo !== undefined) ? viewmodel.dvrip.frontExpo : "10"
+                            enabled: frontExposition.enabled
+                            opacity: frontExposition.opacity
+
+                            property int lastValue: parseInt(text) || 10
+
+                            onTextChanged: {
+                                var clean = text.replace(/[^0-9]/g, "")
+                                if (clean !== text) {
+                                    text = clean
+                                }
+                                if (text.startsWith("0")) {
+                                    text = "1"
+                                }
+                            }
+
+                            Keys.onReturnPressed: focus = false
+
+                            onFocusChanged: {
+                                if (!focus) {
+                                    commitValue()
+                                }
+                            }
+
+                            function commitValue() {
+                                let val = parseInt(text.trim())
+                                if (!isNaN(val)) {
+                                    lastValue = val
+                                    viewmodel.dvrip.forward_int_command("front", "set_exposure", val)
+                                } else {
+                                    text = lastValue
+                                }
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.dvrip
+                            function onFrontExpoChanged() {
+                                if (!frontExpositionIndicatorText.focus) {
+                                    frontExpositionIndicatorText.text = viewmodel.dvrip.frontExpo.toString()
+                                }
+                            }
                         }
                     }
 
@@ -270,13 +325,18 @@ Item {
                             y: 1
                             width: 29
                             height: 28
-                            text: qsTr("+")
+                            text: "+"
                             layer.smooth: true
                             font.pointSize: 18
                             font.bold: true
+                            enabled: frontExposition.enabled
+                            opacity: frontExposition.opacity
+                            onReleased: {
+                                frontExpositionIndicatorText.text = (parseInt(frontExpositionIndicatorText.text) || 0) + 1
+                                frontExpositionIndicatorText.commitValue()
+                            }
                         }
                     }
-
                 }
 
                 Rectangle {
@@ -286,6 +346,10 @@ Item {
                     width: 180
                     height: 60
                     color: "#ffffff"
+                    enabled: (viewmodel.dvrip.frontGain !== null
+                              && viewmodel.dvrip.frontGain !== undefined
+                              && frontAutoISOButton.checked)
+                    opacity: enabled ? 1.0 : 0.5
                     Rectangle {
                         id: frontISOTitle
                         x: 1
@@ -300,11 +364,13 @@ Item {
                             y: 0
                             width: 180
                             height: 30
-                            text: qsTr("ISO")
+                            text: "Gain"
                             font.pixelSize: 20
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.bold: true
+                            enabled: frontISO.enabled
+                            opacity: frontISO.opacity
                         }
                     }
 
@@ -323,10 +389,16 @@ Item {
                             y: 1
                             width: 29
                             height: 28
-                            text: qsTr("-")
+                            text: "-"
                             layer.smooth: true
                             font.pointSize: 18
                             font.bold: true
+                            enabled: frontISO.enabled
+                            opacity: frontISO.opacity
+                            onReleased: {
+                                frontISOIndicatorText.text = (parseInt(frontISOIndicatorText.text) || 0) - 5
+                                frontISOIndicatorText.commitValue()
+                            }
                         }
                     }
 
@@ -342,11 +414,57 @@ Item {
                             id: frontISOIndicatorText
                             width: 120
                             height: 30
-                            text: qsTr("35.0")
                             font.pixelSize: 20
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.bold: false
+                            wrapMode: Text.NoWrap
+                            selectByMouse: true
+                            focus: false
+                            text: (viewmodel.dvrip.frontGain !== null && viewmodel.dvrip.frontGain !== undefined) ? viewmodel.dvrip.frontGain : "50"
+                            enabled: frontISO.enabled
+                            opacity: frontISO.opacity
+
+                            property int lastValue: parseInt(text) || 50
+
+                            onTextChanged: {
+                                var clean = text.replace(/[^0-9]/g, "")
+                                if (clean !== text) {
+                                    text = clean
+                                }
+                                if (parseInt(text) > 100) {
+                                    text = "100"
+                                }
+                                if (parseInt(text) < 0) {
+                                    text = "0"
+                                }
+                            }
+
+                            Keys.onReturnPressed: focus = false
+
+                            onFocusChanged: {
+                                if (!focus) {
+                                    commitValue()
+                                }
+                            }
+
+                            function commitValue() {
+                                let val = parseInt(text.trim())
+                                if (!isNaN(val)) {
+                                    lastValue = val
+                                    viewmodel.dvrip.forward_int_command("front", "set_gain", val)
+                                } else {
+                                    text = lastValue
+                                }
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.dvrip
+                            function onFrontGainChanged() {
+                                if (!frontISOIndicatorText.focus) {
+                                    frontISOIndicatorText.text = viewmodel.dvrip.frontGain.toString()
+                                }
+                            }
                         }
                     }
 
@@ -365,11 +483,16 @@ Item {
                             y: 1
                             width: 29
                             height: 28
-                            text: qsTr("+")
-
+                            text: "+"
                             layer.smooth: true
                             font.pointSize: 18
                             font.bold: true
+                            enabled: frontISO.enabled
+                            opacity: frontISO.opacity
+                            onReleased: {
+                                frontISOIndicatorText.text = (parseInt(frontISOIndicatorText.text) || 0) + 5
+                                frontISOIndicatorText.commitValue()
+                            }
                         }
                     }
                 }
@@ -388,7 +511,7 @@ Item {
                         y: 1
                         width: 180
                         height: 30
-                        text: qsTr("Яркость")
+                        text: "Яркость"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -430,7 +553,7 @@ Item {
                         y: 1
                         width: 180
                         height: 30
-                        text: qsTr("Контраст")
+                        text: "Контраст"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -471,7 +594,7 @@ Item {
                         y: 1
                         width: 180
                         height: 30
-                        text: qsTr("Насыщенность")
+                        text: "Насыщенность"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -516,14 +639,19 @@ Item {
                     width: 190
                     height: 30
                     color: "#ffffff"
-                    SwitchDelegate {
+                    Switch {
                         id: frontAutoExpoButton
                         x: 120
                         y: 0
                         width: 70
                         height: 30
-                        text: qsTr("Перевернуть")
                         display: AbstractButton.IconOnly
+                        checked: (viewmodel.dvrip.frontAutoExpo !== null && viewmodel.dvrip.frontAutoExpo !== undefined) ? viewmodel.dvrip.frontAutoExpo : false
+                        enabled: viewmodel.dvrip.frontAutoExpo !== null && viewmodel.dvrip.frontAutoExpo !== undefined
+                        opacity: enabled ? 1.0 : 0.5
+                        onToggled: {
+                            viewmodel.dvrip.forward_bool_command("front", "set_manual_exposure", checked)
+                        }
                     }
 
                     Text {
@@ -532,11 +660,12 @@ Item {
                         y: 0
                         width: 115
                         height: 30
-                        text: qsTr("Авто выдержка")
+                        text: "Выдержка"
                         font.pixelSize: 16
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         font.bold: false
+                        opacity: frontAutoExpoButton.enabled ? 1.0 : 0.5
                     }
                 }
 
@@ -547,25 +676,67 @@ Item {
                     width: 180
                     height: 30
                     color: "#ffffff"
-                    SwitchDelegate {
+                    Switch {
                         id: frontAutoISOButton
                         x: 110
                         y: 0
                         width: 70
                         height: 30
-                        text: qsTr("Перевернуть")
                         display: AbstractButton.IconOnly
+                        checked: (viewmodel.dvrip.frontAutoGain !== null && viewmodel.dvrip.frontAutoGain !== undefined) ? viewmodel.dvrip.frontAutoGain : false
+                        enabled: viewmodel.dvrip.frontAutoGain !== null && viewmodel.dvrip.frontAutoGain !== undefined
+                        opacity: enabled ? 1.0 : 0.5
+                        onToggled: {
+                            viewmodel.dvrip.forward_bool_command("front", "set_auto_gain", checked)
+                        }
                     }
 
                     Text {
                         id: frontAutoISOText
                         width: 110
                         height: 30
-                        text: qsTr("Авто ISO")
+                        text: "Усиление"
                         font.pixelSize: 16
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         font.bold: false
+                        opacity: frontAutoISOButton.enabled ? 1.0 : 0.5
+                    }
+                }
+
+                Rectangle {
+                    id: frontMirror
+                    x: 45
+                    y: 90
+                    width: 180
+                    height: 30
+                    color: "#ffffff"
+                    Switch {
+                        id: frontMirrorButton
+                        x: 110
+                        y: 0
+                        width: 70
+                        height: 30
+                        display: AbstractButton.IconOnly
+                        checked: (viewmodel.dvrip.frontMirror !== null && viewmodel.dvrip.frontMirror !== undefined) ? viewmodel.dvrip.frontMirror : false
+                        enabled: viewmodel.dvrip.frontMirror !== null && viewmodel.dvrip.frontMirror !== undefined
+                        opacity: enabled ? 1.0 : 0.5
+                        onToggled: {
+                            viewmodel.dvrip.forward_bool_command("front", "set_mirror", checked)
+                        }
+                    }
+
+                    Text {
+                        id: frontMirrorText
+                        width: 110
+                        height: 30
+                        text: "Отзеркалить"
+                        font.pixelSize: 16
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.bold: false
+                        opacity: frontMirrorButton.enabled ? 1.0 : 0.5
+
                     }
                 }
 
@@ -573,65 +744,38 @@ Item {
                 Rectangle {
                     id: frontFlip
                     x: 45
-                    y: 90
+                    y: 130
                     width: 180
                     height: 30
                     color: "#ffffff"
 
-                    SwitchDelegate {
+                    Switch {
                         id: frontFlipButton
                         x: 110
                         y: 0
                         width: 70
                         height: 30
-                        text: qsTr("Перевернуть")
                         display: AbstractButton.IconOnly
+                        checked: (viewmodel.dvrip.frontFlip !== null && viewmodel.dvrip.frontFlip !== undefined) ? viewmodel.dvrip.frontFlip : false
+                        enabled: viewmodel.dvrip.frontFlip !== null && viewmodel.dvrip.frontFlip !== undefined
+                        opacity: enabled ? 1.0 : 0.5
+                        onToggled: {
+                            viewmodel.dvrip.forward_bool_command("front", "set_flip", checked)
+                        }
                     }
 
                     Text {
                         id: frontFlipText
                         width: 110
                         height: 30
-                        text: qsTr("Перевернуть")
+                        text: "Перевернуть"
                         font.pixelSize: 16
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         font.bold: false
+                        opacity: frontFlipButton.enabled ? 1.0 : 0.5
                     }
                 }
-
-
-
-
-                Rectangle {
-                    id: frontMirror
-                    x: 45
-                    y: 130
-                    width: 180
-                    height: 30
-                    color: "#ffffff"
-                    SwitchDelegate {
-                        id: frontMirrorButton
-                        x: 110
-                        y: 0
-                        width: 70
-                        height: 30
-                        text: qsTr("Перевернуть")
-                        display: AbstractButton.IconOnly
-                    }
-
-                    Text {
-                        id: frontMirrorText
-                        width: 110
-                        height: 30
-                        text: qsTr("Отзеркалить")
-                        font.pixelSize: 16
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.bold: false
-                    }
-                }
-
 
                 Rectangle {
                     id: frontFPS
@@ -640,6 +784,9 @@ Item {
                     width: 180
                     height: 60
                     color: "#ffffff"
+                    enabled: (viewmodel.dvrip.frontFps !== null
+                              && viewmodel.dvrip.frontFps !== undefined)
+                    opacity: enabled ? 1.0 : 0.5
                     Rectangle {
                         id: frontFPSTitle
                         x: 1
@@ -654,11 +801,13 @@ Item {
                             y: 0
                             width: 180
                             height: 30
-                            text: qsTr("FPS")
+                            text: "FPS"
                             font.pixelSize: 20
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.bold: true
+                            enabled: frontFPS.enabled
+                            opacity: frontFPS.opacity
                         }
                     }
 
@@ -677,10 +826,16 @@ Item {
                             y: 1
                             width: 29
                             height: 28
-                            text: qsTr("-")
+                            text: "-"
                             layer.smooth: true
                             font.pointSize: 18
                             font.bold: true
+                            enabled: frontFPS.enabled
+                            opacity: frontFPS.opacity
+                            onReleased: {
+                                frontFPSIndicatorText.text = (parseInt(frontFPSIndicatorText.text) || 0) - 5
+                                frontFPSIndicatorText.commitValue()
+                            }
                         }
                     }
 
@@ -696,11 +851,57 @@ Item {
                             id: frontFPSIndicatorText
                             width: 120
                             height: 30
-                            text: qsTr("25")
                             font.pixelSize: 20
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.bold: false
+                            wrapMode: Text.NoWrap
+                            selectByMouse: true
+                            focus: false
+                            text: (viewmodel.dvrip.frontFps !== null && viewmodel.dvrip.frontFps !== undefined) ? viewmodel.dvrip.frontFps : "25"
+                            enabled: frontFPS.enabled
+                            opacity: frontFPS.opacity
+
+                            property int lastValue: parseInt(text) || 25
+
+                            onTextChanged: {
+                                var clean = text.replace(/[^0-9]/g, "")
+                                if (clean !== text) {
+                                    text = clean
+                                }
+                                if (parseInt(text) > 100) {
+                                    text = "100"
+                                }
+                                if (parseInt(text) < 1) {
+                                    text = "10"
+                                }
+                            }
+
+                            Keys.onReturnPressed: focus = false
+
+                            onFocusChanged: {
+                                if (!focus) {
+                                    commitValue()
+                                }
+                            }
+
+                            function commitValue() {
+                                let val = parseInt(text.trim())
+                                if (!isNaN(val)) {
+                                    lastValue = val
+                                    viewmodel.dvrip.forward_int_command("front", "set_fps", val)
+                                } else {
+                                    text = lastValue
+                                }
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.dvrip
+                            function onFrontFpsChanged() {
+                                if (!frontFPSIndicatorText.focus) {
+                                    frontFPSIndicatorText.text = viewmodel.dvrip.frontFps.toString()
+                                }
+                            }
                         }
                     }
 
@@ -719,10 +920,16 @@ Item {
                             y: 1
                             width: 29
                             height: 28
-                            text: qsTr("+")
+                            text: "+"
                             layer.smooth: true
                             font.pointSize: 18
                             font.bold: true
+                            enabled: frontFPS.enabled
+                            opacity: frontFPS.opacity
+                            onReleased: {
+                                frontFPSIndicatorText.text = (parseInt(frontFPSIndicatorText.text) || 0) + 5
+                                frontFPSIndicatorText.commitValue()
+                            }
                         }
                     }
                 }
@@ -747,6 +954,7 @@ Item {
                 width: 255
                 height: 448
                 color: "#ffffff"
+
                 Rectangle {
                     id: backExposition
                     x: 38
@@ -755,6 +963,10 @@ Item {
                     height: 60
                     color: "#ffffff"
                     border.width: 0
+                    enabled: (viewmodel.dvrip.backExpo !== null
+                              && viewmodel.dvrip.backExpo !== undefined
+                              && backAutoExpoButton.checked)
+                    opacity: enabled ? 1.0 : 0.5
                     Rectangle {
                         id: backExpositionTitle
                         x: 1
@@ -774,6 +986,7 @@ Item {
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.bold: true
+                            opacity: backExposition.opacity
                         }
                     }
 
@@ -795,6 +1008,12 @@ Item {
                             layer.smooth: true
                             font.pointSize: 18
                             font.bold: true
+                            enabled: backExposition.enabled
+                            opacity: backExposition.opacity
+                            onReleased: {
+                                backExpositionIndicatorText.text = (parseInt(backExpositionIndicatorText.text) || 0) - 1
+                                backExpositionIndicatorText.commitValue()
+                            }
                         }
                     }
 
@@ -806,15 +1025,59 @@ Item {
                         height: 30
                         color: "#ffffff"
                         border.width: 1
+
                         TextEdit {
                             id: backExpositionIndicatorText
                             width: 120
                             height: 30
-                            text: qsTr("35.0")
                             font.pixelSize: 20
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.bold: false
+                            wrapMode: Text.NoWrap
+                            selectByMouse: true
+                            focus: false
+                            text: (viewmodel.dvrip.backExpo !== null && viewmodel.dvrip.backExpo !== undefined) ? viewmodel.dvrip.backExpo : "10"
+                            enabled: backExposition.enabled
+                            opacity: backExposition.opacity
+
+                            property int lastValue: parseInt(text) || 10
+
+                            onTextChanged: {
+                                var clean = text.replace(/[^0-9]/g, "")
+                                if (clean !== text) {
+                                    text = clean
+                                }
+                                if (text.startsWith("0")) {
+                                    text = "1"
+                                }
+                            }
+
+                            Keys.onReturnPressed: focus = false
+
+                            onFocusChanged: {
+                                if (!focus) {
+                                    commitValue()
+                                }
+                            }
+
+                            function commitValue() {
+                                let val = parseInt(text.trim())
+                                if (!isNaN(val)) {
+                                    lastValue = val
+                                    viewmodel.dvrip.forward_int_command("back", "set_exposure", val)
+                                } else {
+                                    text = lastValue
+                                }
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.dvrip
+                            function onBackExpoChanged() {
+                                if (!backExpositionIndicatorText.focus) {
+                                    backExpositionIndicatorText.text = viewmodel.dvrip.backExpo.toString()
+                                }
+                            }
                         }
                     }
 
@@ -836,6 +1099,12 @@ Item {
                             layer.smooth: true
                             font.pointSize: 18
                             font.bold: true
+                            enabled: backExposition.enabled
+                            opacity: backExposition.opacity
+                            onReleased: {
+                                backExpositionIndicatorText.text = (parseInt(backExpositionIndicatorText.text) || 0) + 1
+                                backExpositionIndicatorText.commitValue()
+                            }
                         }
                     }
                 }
@@ -847,6 +1116,10 @@ Item {
                     width: 180
                     height: 60
                     color: "#ffffff"
+                    enabled: (viewmodel.dvrip.backGain !== null
+                              && viewmodel.dvrip.backGain !== undefined
+                              && backAutoISOButton.checked)
+                    opacity: enabled ? 1.0 : 0.5
                     Rectangle {
                         id: backISOTitle
                         x: 1
@@ -861,11 +1134,13 @@ Item {
                             y: 0
                             width: 180
                             height: 30
-                            text: qsTr("ISO")
+                            text: "Gain"
                             font.pixelSize: 20
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.bold: true
+                            enabled: backISO.enabled
+                            opacity: backISO.opacity
                         }
                     }
 
@@ -883,10 +1158,16 @@ Item {
                             y: 1
                             width: 29
                             height: 28
-                            text: qsTr("-")
+                            text: "-"
                             layer.smooth: true
                             font.pointSize: 18
                             font.bold: true
+                            enabled: backISO.enabled
+                            opacity: backISO.opacity
+                            onReleased: {
+                                backISOIndicatorText.text = (parseInt(backISOIndicatorText.text) || 0) - 5
+                                backISOIndicatorText.commitValue()
+                            }
                         }
                     }
 
@@ -902,11 +1183,57 @@ Item {
                             id: backISOIndicatorText
                             width: 120
                             height: 30
-                            text: qsTr("35.0")
                             font.pixelSize: 20
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.bold: false
+                            wrapMode: Text.NoWrap
+                            selectByMouse: true
+                            focus: false
+                            text: (viewmodel.dvrip.backGain !== null && viewmodel.dvrip.backGain !== undefined) ? viewmodel.dvrip.backGain : "50"
+                            enabled: backISO.enabled
+                            opacity: backISO.opacity
+
+                            property int lastValue: parseInt(text) || 50
+
+                            onTextChanged: {
+                                var clean = text.replace(/[^0-9]/g, "")
+                                if (clean !== text) {
+                                    text = clean
+                                }
+                                if (parseInt(text) > 100) {
+                                    text = "100"
+                                }
+                                if (parseInt(text) < 0) {
+                                    text = "0"
+                                }
+                            }
+
+                            Keys.onReturnPressed: focus = false
+
+                            onFocusChanged: {
+                                if (!focus) {
+                                    commitValue()
+                                }
+                            }
+
+                            function commitValue() {
+                                let val = parseInt(text.trim())
+                                if (!isNaN(val)) {
+                                    lastValue = val
+                                    viewmodel.dvrip.forward_int_command("back", "set_gain", val)
+                                } else {
+                                    text = lastValue
+                                }
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.dvrip
+                            function onBackGainChanged() {
+                                if (!backISOIndicatorText.focus) {
+                                    backISOIndicatorText.text = viewmodel.dvrip.backGain.toString()
+                                }
+                            }
                         }
                     }
 
@@ -924,10 +1251,16 @@ Item {
                             y: 1
                             width: 29
                             height: 28
-                            text: qsTr("+")
+                            text: "+"
                             layer.smooth: true
                             font.pointSize: 18
                             font.bold: true
+                            enabled: backISO.enabled
+                            opacity: backISO.opacity
+                            onReleased: {
+                                backISOIndicatorText.text = (parseInt(backISOIndicatorText.text) || 0) + 5
+                                backISOIndicatorText.commitValue()
+                            }
                         }
                     }
                 }
@@ -947,7 +1280,7 @@ Item {
                         width: 180
                         height: 30
                         color: (viewmodel.onvif.backBrightness !== null && viewmodel.onvif.backBrightness !== undefined) ? "black" : "gray"
-                        text: qsTr("Яркость")
+                        text: "Яркость"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -1119,14 +1452,19 @@ Item {
                     width: 190
                     height: 30
                     color: "#ffffff"
-                    SwitchDelegate {
+                    Switch {
                         id: backAutoExpoButton
                         x: 120
                         y: 0
                         width: 70
                         height: 30
-                        text: qsTr("Перевернуть")
                         display: AbstractButton.IconOnly
+                        checked: (viewmodel.dvrip.backAutoExpo !== null && viewmodel.dvrip.backAutoExpo !== undefined) ? viewmodel.dvrip.backAutoExpo : false
+                        enabled: viewmodel.dvrip.backAutoExpo !== null && viewmodel.dvrip.backAutoExpo !== undefined
+                        opacity: enabled ? 1.0 : 0.5
+                        onToggled: {
+                            viewmodel.dvrip.forward_bool_command("back", "set_manual_exposure", checked)
+                        }
                     }
 
                     Text {
@@ -1135,11 +1473,12 @@ Item {
                         y: 0
                         width: 115
                         height: 30
-                        text: qsTr("Авто выдержка")
+                        text: "Выдержка"
                         font.pixelSize: 16
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         font.bold: false
+                        opacity: backAutoExpoButton.enabled ? 1.0 : 0.5
                     }
                 }
 
@@ -1150,93 +1489,106 @@ Item {
                     width: 180
                     height: 30
                     color: "#ffffff"
-                    SwitchDelegate {
+                    Switch {
                         id: backAutoISOButton
                         x: 110
                         y: 0
                         width: 70
                         height: 30
-                        text: qsTr("Перевернуть")
                         display: AbstractButton.IconOnly
+                        checked: (viewmodel.dvrip.backAutoGain !== null && viewmodel.dvrip.backAutoGain !== undefined) ? viewmodel.dvrip.backAutoGain : false
+                        enabled: viewmodel.dvrip.backAutoGain !== null && viewmodel.dvrip.backAutoGain !== undefined
+                        opacity: enabled ? 1.0 : 0.5
+                        onToggled: {
+                            viewmodel.dvrip.forward_bool_command("back", "set_auto_gain", checked)
+                        }
                     }
 
                     Text {
                         id: backAutoISOText
                         width: 110
                         height: 30
-                        text: qsTr("Авто ISO")
+                        text: "Усиление"
                         font.pixelSize: 16
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         font.bold: false
+                        opacity: backAutoISOButton.enabled ? 1.0 : 0.5
+
                     }
                 }
 
-
-
                 Rectangle {
-                    id: backFlip
+                    id: backMirror
                     x: 45
                     y: 90
                     width: 180
                     height: 30
                     color: "#ffffff"
-                    SwitchDelegate {
-                        id: backFlipButton
-                        x: 110
-                        y: 0
-                        width: 70
-                        height: 30
-                        text: qsTr("Перевернуть")
-                        display: AbstractButton.IconOnly
-                    }
-
-                    Text {
-                        id: backFlipText
-                        width: 110
-                        height: 30
-                        text: qsTr("Перевернуть")
-                        font.pixelSize: 16
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.bold: false
-                    }
-                }
-
-
-
-
-                Rectangle {
-                    id: backMirror
-                    x: 45
-                    y: 130
-                    width: 180
-                    height: 30
-                    color: "#ffffff"
-                    SwitchDelegate {
+                    Switch {
                         id: backMirrorButton
                         x: 110
                         y: 0
                         width: 70
                         height: 30
-                        text: qsTr("Перевернуть")
                         display: AbstractButton.IconOnly
+                        checked: (viewmodel.dvrip.backMirror !== null && viewmodel.dvrip.backMirror !== undefined) ? viewmodel.dvrip.backMirror : false
+                        enabled: viewmodel.dvrip.backMirror !== null && viewmodel.dvrip.backMirror !== undefined
+                        opacity: enabled ? 1.0 : 0.5
+                        onToggled: {
+                            viewmodel.dvrip.forward_bool_command("back", "set_mirror", checked)
+                        }
                     }
 
                     Text {
                         id: backMirrorText
                         width: 110
                         height: 30
-                        text: qsTr("Отзеркалить")
+                        text: "Отзеркалить"
                         font.pixelSize: 16
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         font.bold: false
+                        opacity: backMirrorButton.enabled ? 1.0 : 0.5
+
                     }
                 }
 
+                Rectangle {
+                    id: backFlip
+                    x: 45
+                    y: 130
+                    width: 180
+                    height: 30
+                    color: "#ffffff"
+                    Switch {
+                        id: backFlipButton
+                        x: 110
+                        y: 0
+                        width: 70
+                        height: 30
+                        display: AbstractButton.IconOnly
+                        checked: (viewmodel.dvrip.backFlip !== null && viewmodel.dvrip.backFlip !== undefined) ? viewmodel.dvrip.backFlip : false
+                        enabled: viewmodel.dvrip.backFlip !== null && viewmodel.dvrip.backFlip !== undefined
+                        opacity: enabled ? 1.0 : 0.5
+                        onToggled: {
+                            viewmodel.dvrip.forward_bool_command("back", "set_flip", checked)
+                        }
+                    }
 
+                    Text {
+                        id: backFlipText
+                        width: 110
+                        height: 30
+                        text: "Перевернуть"
+                        font.pixelSize: 16
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.bold: false
+                        opacity: backFlipButton.enabled ? 1.0 : 0.5
 
+                    }
+                }
 
                 Rectangle {
                     id: backFPS
@@ -1245,6 +1597,9 @@ Item {
                     width: 180
                     height: 60
                     color: "#ffffff"
+                    enabled: (viewmodel.dvrip.backFps !== null
+                              && viewmodel.dvrip.backFps !== undefined)
+                    opacity: enabled ? 1.0 : 0.5
                     Rectangle {
                         id: backFPSTitle
                         x: 1
@@ -1259,7 +1614,7 @@ Item {
                             y: 0
                             width: 180
                             height: 30
-                            text: qsTr("FPS")
+                            text: "FPS"
                             font.pixelSize: 20
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
@@ -1281,10 +1636,16 @@ Item {
                             y: 1
                             width: 29
                             height: 28
-                            text: qsTr("-")
+                            text: "-"
                             layer.smooth: true
                             font.pointSize: 18
                             font.bold: true
+                            enabled: backFPS.enabled
+                            opacity: backFPS.opacity
+                            onReleased: {
+                                backFPSIndicatorText.text = (parseInt(backFPSIndicatorText.text) || 0) - 5
+                                backFPSIndicatorText.commitValue()
+                            }
                         }
                     }
 
@@ -1300,11 +1661,57 @@ Item {
                             id: backFPSIndicatorText
                             width: 120
                             height: 30
-                            text: qsTr("25")
                             font.pixelSize: 20
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.bold: false
+                            wrapMode: Text.NoWrap
+                            selectByMouse: true
+                            focus: false
+                            text: (viewmodel.dvrip.backFps !== null && viewmodel.dvrip.backFps !== undefined) ? viewmodel.dvrip.backFps : "25"
+                            enabled: backFPS.enabled
+                            opacity: backFPS.opacity
+
+                            property int lastValue: parseInt(text) || 25
+
+                            onTextChanged: {
+                                var clean = text.replace(/[^0-9]/g, "")
+                                if (clean !== text) {
+                                    text = clean
+                                }
+                                if (parseInt(text) > 100) {
+                                    text = "100"
+                                }
+                                if (parseInt(text) < 1) {
+                                    text = "10"
+                                }
+                            }
+
+                            Keys.onReturnPressed: focus = false
+
+                            onFocusChanged: {
+                                if (!focus) {
+                                    commitValue()
+                                }
+                            }
+
+                            function commitValue() {
+                                let val = parseInt(text.trim())
+                                if (!isNaN(val)) {
+                                    lastValue = val
+                                    viewmodel.dvrip.forward_int_command("back", "set_fps", val)
+                                } else {
+                                    text = lastValue
+                                }
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.dvrip
+                            function onBackFpsChanged() {
+                                if (!backFPSIndicatorText.focus) {
+                                    backFPSIndicatorText.text = viewmodel.dvrip.backFps.toString()
+                                }
+                            }
                         }
                     }
 
@@ -1322,10 +1729,16 @@ Item {
                             y: 1
                             width: 29
                             height: 28
-                            text: qsTr("+")
+                            text: "+"
                             layer.smooth: true
                             font.pointSize: 18
                             font.bold: true
+                            enabled: backFPS.enabled
+                            opacity: backFPS.opacity
+                            onReleased: {
+                                backFPSIndicatorText.text = (parseInt(backFPSIndicatorText.text) || 0) + 5
+                                backFPSIndicatorText.commitValue()
+                            }
                         }
                     }
                 }
@@ -1356,7 +1769,7 @@ Item {
                         y: 1
                         width: 59
                         height: 43
-                        text: qsTr("-5*")
+                        text: "-5*"
                         font.pointSize: 16
                         font.bold: true
                     }
@@ -1377,7 +1790,7 @@ Item {
                         y: 1
                         width: 59
                         height: 43
-                        text: qsTr("+5*")
+                        text: "+5*"
                         font.bold: true
                         font.pointSize: 16
                     }
@@ -1397,7 +1810,7 @@ Item {
                         y: 0
                         width: 90
                         height: 45
-                        text: qsTr("45*")
+                        text: "45*"
                         font.pixelSize: 18
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -1411,7 +1824,7 @@ Item {
                     y: 53
                     width: 270
                     height: 27
-                    text: qsTr("УГОЛ ПОВОРОТА")
+                    text: "УГОЛ ПОВОРОТА"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter

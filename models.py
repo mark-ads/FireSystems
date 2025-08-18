@@ -23,8 +23,8 @@ class CameraConfig(BaseModel):
     fps: int = 25
     auto_gain: int = 1
     auto_exposure: bool = True
-    gain: int = 50
-    exposure: int = 16
+    gain: int = 1
+    exposure: int = 1
     brightness: float = 35.0
     contrast: float = 32.0
     colorsaturation: float = 34.0
@@ -71,4 +71,4 @@ class Settings(BaseModel):
 class Command:
     target: Literal['front', 'back']
     command: str
-    value: Optional[Union[int, float]] = field(default=None)
+    value: Optional[Union[int, float, bool]] = field(default=None)

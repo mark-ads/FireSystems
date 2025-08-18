@@ -71,7 +71,7 @@ class Config(QObject):
     def use_defaults(self):
         self.settings = Settings()
 
-    def get(self, sys_key: str, *path: str) -> str:
+    def get_str(self, sys_key: str, *path: str) -> str:
         '''Получить настройки. Вводим путь через аргументы path.
         (hint: system_id, slot, device, field)
         '''
@@ -85,7 +85,7 @@ class Config(QObject):
         except KeyError:
             raise KeyError(f"Нет системы с ключом '{sys_key}'")
 
-    def get_camera_settings(self, sys_key: str, slot: str, field: str) -> float:
+    def get_onvif_settings(self, sys_key: str, slot: str, field: str) -> float:
         '''Получить числовую настройку камеры (float)'''
         try:
             zond_pair = self.settings.zond_pairs[sys_key]
@@ -103,6 +103,20 @@ class Config(QObject):
         except KeyError:
             raise KeyError(f"Нет системы с ключом '{sys_key}'")
 
+    def get(self, sys_key: str, *path: str) -> Union[int, float, str]:
+        '''Получить настройку не меняя и не проверяя тип
+        (hint: system_id, slot, device, field)
+        '''
+        try:
+            node = self.settings.zond_pairs[sys_key]
+            for part in path:
+                node = getattr(node, part)
+            return node
+        except AttributeError:
+            raise KeyError(f"Нет поля {'->'.join((sys_key,) + path)} в настройках")
+        except KeyError:
+            raise KeyError(f"Нет системы с ключом '{sys_key}'")
+
     def get_sys_settings(self, *path: str) -> str:
         '''Получить настроки программы'''
         try:
@@ -113,12 +127,11 @@ class Config(QObject):
         except AttributeError:
             raise KeyError(f"Нет поля {path} в настройках")
 
-    def set(self, sys_key: str, *path: str, value: Union[int, float]):
+    def set(self, sys_key: str, *path: str, value: Union[int, float, bool]):
         '''
         Устанавливает новое значение по указанному пути и сохраняет конфиг.
         (hint: system_id, slot, device, field, value)
         '''
-        print('получили изменение настроек')
         self._lock.lockForWrite()
         try:
             node = self.settings.zond_pairs[sys_key]
