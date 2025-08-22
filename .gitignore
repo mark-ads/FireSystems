@@ -8,6 +8,7 @@
 
 # окружение остаётся неизменным на сервере
 venv/
+logs/
 FireSystems.pyproj
 FireSystems.sln
 settings.yaml
@@ -370,30 +371,4 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 /.env
-/resources/.admin_info.txt
-/resources/.requests.txt
-/resources/.user_info.txt
-/resources/.admin_info.txt
-/resources/.user_info.txt
-/resources/.requests.txt
-/resources/.psychologist.json
-/resources/.threads.json
-/resources/.dialogs.json
-/resources/up_dates.txt
-/resources/.up_dates.txt
-/files/ipoteka.xlsx
-/files/ipoteka.doc
-/files/ipoteka.docx
-/resources/.admin_info.json
-/resources/.user_info.json
-/resources/.requests.json
-/result.txt
-/resources/bot_logs.db
-/resources/bot_logs.db
-/resources/user_logs.db
-/resources/gpt_logs.db
-/resources/.user_states.json
-/example.py
-/gpt/update_assistant.py
-/gpt/create_assistant.py
 /FireSystems.pyproj

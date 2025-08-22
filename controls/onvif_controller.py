@@ -4,6 +4,7 @@ from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 from zeep import xsd
 from typing import Literal
 from config import Config
+from logs import MultiLogger
 from models import Command
 
 
@@ -19,19 +20,17 @@ class OnvifController(QThread):
 
     onvifChangeNotification = pyqtSignal(str)
 
-    def __init__(self, config: Config, system_id: str, slot: Literal['front', 'back']):
+    def __init__(self, config: Config, logger: MultiLogger, system_id: str, slot: Literal['front', 'back']):
         super().__init__()
         self.config = config
         self.system_id = system_id
         self.slot = slot
+        self.logger = logger.get_logger(f'onvif_{self.slot}')
         self.camera = None
         self.disconnect()
 
         self.commands = Queue()
         self._running = False
-        
-        self.feedback_timer = QTimer(self)
-        self.feedback_timer.timeout.connect(self.check_changes)
 
         self.wait_for_command()
 
@@ -51,10 +50,10 @@ class OnvifController(QThread):
                 self.is_online = True
                 self._set_initial_camera_settings()
                 self._send_change_notification()
-                print(f'[ONVIF].{self.slot}: УСПЕШНОЕ ПОДКЛЮЧЕНИЕ')
+                self.logger.add_log('INFO', f'УСПЕШНОЕ ПОДКЛЮЧЕНИЕ')
         except Exception as e:
             self.disconnect()
-            print(f'[ONVIF].{self.slot}: подключение к не удалось: {e}')
+            self.logger.add_log('CRITICAL', f'Подключение к не удалось: {e}')
 
     def disconnect(self):
         self.is_online = False
@@ -63,7 +62,7 @@ class OnvifController(QThread):
         self.saturation = None
         self.image_settings = None
         if self.camera:
-            print(f'[ONVIF].{self.slot}: Сработал disconnect()')
+            self.logger.add_log('INFO', f'Сработал disconnect()')
             self.camera = None
             self.media_service = None
             self.imaging_service = None
@@ -117,17 +116,17 @@ class OnvifController(QThread):
             get_req = self.imaging_service.create_type('GetImagingSettings')
             get_req.VideoSourceToken = self.video_source_token
             self.image_settings = self.imaging_service.GetImagingSettings(get_req)
-            print(f'[ONVIF].{self.slot}: Настройки подтверждены и обновлены')
+            #self.logger.add_log('DEBUG', f'Настройки подтверждены и обновлены')
             return True
         except Exception as e:
-            print(f'[ONVIF].{self.slot}: Ошибка при отправке настроек: {e}')
+            self.logger.add_log('ERROR', f'Ошибка при отправке настроек: {e}')
             return False
 
     def _update_param(self, name: str, value: float = None):
         try:
             self._check_ready()
             if value > 100.0 or value < 0.0:
-                print(f'[ONVIF].{self.slot}: значение вне диапазона ({value})')
+                self.logger.add_log('ERROR', f'начение вне диапазона ({value})')
                 return
             if hasattr(self.image_settings, name):
                 if name == 'Brightness':
@@ -145,7 +144,7 @@ class OnvifController(QThread):
                 self.disconnect()
                 raise AttributeError(f'[ONVIF].{self.slot}: настройка {name} отсутствует.')
         except Exception as e:
-            print(f'[ONVIF].{self.slot}: не удалось изменить параметр {name}.\n{e}')
+            self.logger.add_log('ERROR', f'Не удалось изменить параметр {name}.\n{e}')
 
     def set_brightness(self, value: float):
         self._update_param('Brightness', value)
@@ -157,8 +156,7 @@ class OnvifController(QThread):
         self._update_param('ColorSaturation', value)
 
     def check_changes(self):
-        print(f'[ONVIF].{self.slot}: сработала проверка')
-        self.feedback_timer.stop()
+        self.logger.add_log('DEBUG', f'Сработала проверка')
         last_values = [self.brightness, self.contrast, self.saturation]
         new_values = [getattr(self.image_settings, 'Brightness', None), 
                       getattr(self.image_settings, 'Contrast', None), 
@@ -184,21 +182,20 @@ class OnvifController(QThread):
             self.saturation = None
 
     def _send_change_notification(self):
-        print(f'[ONVIF].{self.slot}: сигнал об изменениях отправлен')
+        self.logger.add_log('WARN', f'Сигнал об изменениях отправлен')
         self.onvifChangeNotification.emit(self.slot)
 
     def get_current_params(self):
+        self.logger.add_log('INFO', f'brightness = {self.brightness}, contrast = {self.contrast}, saturation = {self.saturation}')
         return self.brightness, self.contrast, self.saturation
 
     def add_command(self, cmd: Command):
         self.commands.put(cmd)
-        self.feedback_timer.stop()
-        self.feedback_timer.start(1500)
 
     def _exec_command(self, cmd: Command):
         method = getattr(self, cmd.command, None)
         if not callable(method):
-            print(f"[ONVIF].{self.slot}: ❌Метод {cmd.command} не найден")
+            self.logger.add_log('ERROR', f'Метод {cmd.command} не найден')
             return
         if cmd.value is not None:
             method(cmd.value)
@@ -216,5 +213,6 @@ class OnvifController(QThread):
     def run(self):
         while self._running:
             command = self.commands.get()
+            self.logger.add_log('DEBUG', f'command = {command}')
             if command is not None:
                 self._exec_command(command)

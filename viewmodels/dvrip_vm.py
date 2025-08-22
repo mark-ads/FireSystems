@@ -188,7 +188,6 @@ class DvripVM(QObject):
 
     @pyqtSlot()
     def connect(self):
-        print(f'[DVRIP VM]: CONNECTION trying...')
         cmd_front = Command(target='front', command='connect')
         self.front.commands.put(cmd_front)
         cmd_back = Command(target='back', command='connect')
@@ -208,7 +207,6 @@ class DvripVM(QObject):
 
     @pyqtSlot(str, str, int)
     def forward_int_command(self, slot: Literal['front', 'back'], command: str, value: int):
-        print(f'[DVRIP_VM]: {slot}, {command}, {value}')
         cmd = Command(
             target=slot,
             command=command,
@@ -263,7 +261,6 @@ class DvripVM(QObject):
             self.frontAutoExpo = ae
             self.frontMirror = m
             self.frontFlip = f
-            print('[DVRIP_VM]front:', fps, e, g, ag, ae, m, f)
         else:
             fps, e, g, ag, ae, m, f = self.back.get_current_params()
             self.backFps = fps
@@ -273,4 +270,3 @@ class DvripVM(QObject):
             self.backAutoExpo = ae
             self.backMirror = m
             self.backFlip = f
-            print('[DVRIP_VM]back:', fps, e, g, ag, ae, m, f)

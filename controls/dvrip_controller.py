@@ -4,6 +4,8 @@ from typing import Dict, Literal, Union
 from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 from queue import Queue
 from models import Command
+from logs import MultiLogger
+
 
 class DvripController(QThread):
     '''
@@ -12,11 +14,12 @@ class DvripController(QThread):
     '''
     dvripChangeNotification = pyqtSignal(str)
 
-    def __init__(self, config: Config, system_id: str, slot: Literal['front', 'back']):
+    def __init__(self, config: Config, logger: MultiLogger, system_id: str, slot: Literal['front', 'back']):
         super().__init__()
         self.config = config
         self.system_id = system_id
         self.slot = slot
+        self.logger = logger.get_logger(f'dvrip_{self.slot}')
         self.camera = None
         self.disconnect()
 
@@ -34,18 +37,19 @@ class DvripController(QThread):
         self.disconnect()
         self.update_settings()
         try:
-            print(f'[DVRIP].{self.slot}: начало подключения')
+            self.logger.add_log('DEBUG', f'Начало подключения')
             self.camera = DVRIPCam(self.ip, user=self.login, password=self.password)
             if self.camera.login():
-                print(f'[DVRIP].{self.slot}: Successful login. IP: {self.ip}')
+                self.logger.add_log('INFO', f'Successful login. IP: {self.ip}')
                 self.encode_params = self.camera.get_info('Simplify.Encode')
                 self.camera_params = self.camera.get_info('Camera')
                 self._set_initial_camera_settings()
         except Exception as e:
-                print(f'[DVRIP].{self.slot}: Login failure. IP: {self.ip}. \n {e}')
+                self.logger.add_log('ERROR', f'Login failure. IP: {self.ip}. \n {e}')
 
     def disconnect(self):
         '''Метод для отключения текущего подключения и очистки параметров'''
+        self.logger.add_log('DEBUG', f'Вызван disconnect()')
 
         self.fps = None
         self.expo = None
@@ -57,11 +61,11 @@ class DvripController(QThread):
         self.ircut = None
 
         if self.camera:
-            print(f'[DVRIP].{self.slot}: вызван disconnect()')
             try:
                 self.camera.close()
+                self.logger.add_log('INFO', f'Успешный disconnect()')
             except Exception as e:
-                print(f'[DVRIP].{self.slot}: ошибка при disconnect(): {e}')
+                self.logger.add_log('CRITICAL', f'Ошибка при disconnect(): {e}')
             self.camera = None
             self._send_change_notification()
 
@@ -83,51 +87,51 @@ class DvripController(QThread):
                     self.fps = self.config.get(self.system_id, self.slot, 'camera', 'fps')
                     if self.encode_params[0]['MainFormat']['Video']['FPS'] != self.fps:
                         self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'FPS' : self.fps}}})
-                    print(f'[DVRIP].{self.slot}: fps = {self.fps}: ГОТОВО!')
+                    self.logger.add_log('DEBUG', f'Fps = {self.fps}: ГОТОВО!')
                 if 'IrcutSwap' in self.camera_params['Param'][0]:
                     self.camera.set_info('Camera.Param.[0]', {'IrcutSwap' : 1})
                     self.ircut = False
-                    print(f'[DVRIP].{self.slot}: IrcutSwap = {self.ircut}: ГОТОВО!')
+                    self.logger.add_log('DEBUG', f'IrcutSwap = {self.ircut}: ГОТОВО!')
                 if 'GainParam' in self.camera_params['Param'][0]:
                     if 'AutoGain' in self.camera_params['Param'][0]['GainParam']:
                         self.auto_gain = self.config.get(self.system_id, self.slot, 'camera', 'auto_gain')
                         self.camera.set_info('Camera.Param.[0]', {'GainParam' : {'AutoGain' : self.auto_gain}})
-                        print(f'[DVRIP].{self.slot}: auto_gain = {self.auto_gain}: ГОТОВО!')
+                        self.logger.add_log('DEBUG', f'Auto_gain = {self.auto_gain}: ГОТОВО!')
                     if 'Gain' in self.camera_params['Param'][0]['GainParam']:
                         self.gain = self.config.get(self.system_id, self.slot, 'camera', 'gain')
                         self.camera.set_info('Camera.Param.[0]', {'GainParam' : {'Gain' : self.gain}})
-                        print(f'[DVRIP].{self.slot}: gain = {self.gain}: ГОТОВО!')
+                        self.logger.add_log('DEBUG', f'Gain = {self.gain}: ГОТОВО!')
                 if 'ExposureParam' in self.camera_params['Param'][0]:
                     if 'Level' in self.camera_params['Param'][0]['ExposureParam']:
-                        self.manual_expo = self.config.get(self.system_id, self.slot, 'camera', 'auto_exposure')
+                        self.manual_expo = self.config.get(self.system_id, self.slot, 'camera', 'manual_exposure')
                         self.expo = self.config.get(self.system_id, self.slot, 'camera', 'exposure')
                         if self.manual_expo == True:
                             self.camera.set_info('Camera.Param.[0]', {'ExposureParam' : {'Level' : self.expo}})
                         else:
                             self.camera.set_info('Camera.Param.[0]', {'ExposureParam' : {'Level' : 0}})
-                        print(f'[DVRIP].{self.slot}: exposure = manual:{self.manual_expo}, expo:{self.expo}: ГОТОВО!')
+                        self.logger.add_log('DEBUG', f'Exposure = manual:{self.manual_expo}, expo:{self.expo}: ГОТОВО!')
                 if 'PictureFlip' in self.camera_params['Param'][0]:
                     self.flip = self.config.get(self.system_id, self.slot, 'camera', 'flip')
                     if self.flip:
                         self.camera.set_info('Camera.Param.[0]', {'PictureFlip' : '0x00000001'})
                     else:
                         self.camera.set_info('Camera.Param.[0]', {'PictureFlip' : '0x00000000'})
-                    print(f'[DVRIP].{self.slot}: flip = {self.flip}: ГОТОВО!')
+                    self.logger.add_log('DEBUG', f'Flip = {self.flip}: ГОТОВО!')
                 if 'PictureMirror' in self.camera_params['Param'][0]:
                     self.mirror = self.config.get(self.system_id, self.slot, 'camera', 'mirror')
                     if self.mirror:
                         self.camera.set_info('Camera.Param.[0]', {'PictureMirror' : '0x00000001'})
                     else:
                         self.camera.set_info('Camera.Param.[0]', {'PictureMirror' : '0x00000000'})
-                    print(f'[DVRIP].{self.slot}: mirror = {self.mirror}: ГОТОВО!')
+                    self.logger.add_log('DEBUG', f'Mirror = {self.mirror}: ГОТОВО!')
 
                 self.camera.set_time()
                 self.encode_params = self.camera.get_info('Simplify.Encode')
                 self.camera_params = self.camera.get_info('Camera')
                 self._send_change_notification()
-                print(f'[DVRIP].{self.slot}: Начальные настройки применены.')
+                self.logger.add_log('INFO', f'Начальные настройки применены.')
             except Exception as e:
-                print(f'[DVRIP].{self.slot}: ошибка отправки начальных настроек: {e}')
+                self.logger.add_log('ERROR', f'Ошибка отправки начальных настроек: {e}')
 
 
     def switch_system(self, new_system):
@@ -137,6 +141,7 @@ class DvripController(QThread):
     def _check_ready(self) -> bool:
         if self.camera is not None:
             return True
+        self.logger.add_log('CRITICAL', f'_check_ready() -> None')
         return False
 
     def add_command(self, cmd: Command):
@@ -145,7 +150,7 @@ class DvripController(QThread):
     def _exec_command(self, cmd: Command):
         method = getattr(self, cmd.command, None)
         if not callable(method):
-            print(f"❌[DVRIP].{self.slot}: Метод {cmd.command} не найден")
+            self.logger.add_log('ERROR', f'Метод {cmd.command} не найден')
             return
         if cmd.value is not None:
             method(cmd.value)
@@ -163,14 +168,14 @@ class DvripController(QThread):
         :param config_key: ключ для сохранения в конфиг (например 'exposure')
         """
         if getattr(self, attr_name) is None:
-            print('NOOOOOOOOOOOOOOOOOOOOOOOOOOO')
+            self.logger.add_log('ERROR', f'Не найден параметр в {attr_name} в объекте')
             return False
         try:
             d = value
             for key in reversed(param_path):
                 d = {key: d}
 
-            print(f'[DVRIP].{self.slot}: _send_camera_command: ({section} : {d}')
+            self.logger.add_log('INFO', f'_send_camera_command: ({section} : {d}')
             self.camera.set_info(section, d)
 
             if config_key:
@@ -183,7 +188,7 @@ class DvripController(QThread):
             setattr(self, attr_name, value)
             return True
         except Exception as e:
-            print(f"[DVRIP].{self.slot}: ошибка отправки команды {param_path}: {e}")
+            self.logger.add_log('ERROR', f'Ошибка отправки команды {param_path}: {e}')
 
     def check_changes(self):
         if not self._check_ready():
@@ -193,33 +198,37 @@ class DvripController(QThread):
             "expo": self.expo,
             "gain": self.gain,
             "auto_gain": self.auto_gain,
-            "auto_expo": self.manual_expo,
+            "manual_expo": self.manual_expo,
             "mirror": self.mirror,
             "flip": self.flip,
         }
         try:
             camera_param = self.camera_params["Param"][0]
-            exposure_param = camera_param.get("ExposureParam", {}) or {}
+            exposure_param = camera_param.get("ExposureParam", {})
             exposure_level = exposure_param.get("Level")
-            gain_param = camera_param.get("GainParam", {})
+            paramEx = self.camera_params["ParamEx"][0]
+            broad = paramEx.get('BroadTrends', {})
+            #gain_param = camera_param.get("GainParam", {})
 
             new_values = {
                 "fps": self.encode_params[0]["MainFormat"]["Video"].get("FPS"),
                 "expo": self.expo if exposure_level == 0 else exposure_level,
-                "auto_expo": exposure_level == 0,
-                "gain": gain_param.get("Gain"),
-                "auto_gain": gain_param.get("AutoGain"),
+                #"gain": gain_param.get("Gain"),
+                #"auto_gain": gain_param.get("AutoGain"),
+                "gain": broad.get("Gain"),
+                "auto_gain": broad.get("AutoGain"),
+                "manual_expo": exposure_level != 0,
                 "mirror": camera_param.get("PictureMirror") == '0x00000001',
                 "flip": camera_param.get("PictureFlip") == '0x00000001',
             }
         except Exception as e:
-            print(f'[DVRIP].{self.slot}: check_changes: параметр в self.encode_params или self.camera_params не найден: {e}')
+            self.logger.add_log('ERROR', f'check_changes: параметр в self.encode_params или self.camera_params не найден: {e}')
             return
 
         changes_detected = False  # оставляю цикл дорабатывать до конца для отладки и принтов
-        for key in last_values:
+        for key in last_values:  # потом можно останавливать после первого несовпадения
             if last_values[key] is not None and last_values[key] != new_values[key]:
-                print(f"[DVRIP].{self.slot}: изменение {key}: {last_values[key]} -> {new_values[key]}")
+                self.logger.add_log('INFO', f'Изменение {key}: {last_values[key]} -> {new_values[key]}')
                 changes_detected = True
 
         if changes_detected:
@@ -234,13 +243,14 @@ class DvripController(QThread):
         for key, value in new_values.items():
             setattr(self, key, value)
 
-        print(f"[DVRIP].{self.slot}: параметры синхронизированы с камерой")
+        self.logger.add_log('INFO', f'Параметры синхронизированы с камерой')
 
     def _send_change_notification(self):
-        print(f'[DVRIP].{self.slot}: сигнал изменения настроек отправлен!')
+        self.logger.add_log('WARN', f'Сигнал изменения настроек отправлен!')
         self.dvripChangeNotification.emit(self.slot)
 
     def get_current_params(self) -> Dict:
+        self.logger.add_log('INFO', f'fps={self.fps}, expo={self.expo}, gain={self.gain}, auto_gain={self.auto_gain}, auto_expo={self.manual_expo}, mirror={self.mirror}, flip={self.flip}')
         return self.fps, self.expo, self.gain, self.auto_gain, self.manual_expo, self.mirror, self.flip
 
     def wait_for_command(self):
@@ -253,13 +263,13 @@ class DvripController(QThread):
 
     def set_fps(self, value: int):
         if not self._check_ready or self.fps is None:
-            print(f'self.fps = {self.fps}, self.camera = {self.camera}')
+            self.logger.add_log('WARN', f'self.fps = {self.fps}')
             return
         self._send_camera_command('fps', 'Simplify.Encode.[0]', ['MainFormat', 'Video', 'FPS'], value, 'fps')
 
     def set_manual_exposure(self, enabled: bool):
-        print(f'[DVRIP].{self.slot}: SET_AUTO_EXPOSURE')
         if not self._check_ready() or self.expo is None:
+            self.logger.add_log('WARN', f'self.expo = {self.expo}')
             return
         if enabled:
             result = self._send_camera_command(
@@ -271,12 +281,13 @@ class DvripController(QThread):
             )
         if result:
             self.manual_expo = enabled
-            self.config.set(self.system_id, self.slot, 'camera', 'auto_exposure', value=enabled)
+            self.config.set(self.system_id, self.slot, 'camera', 'manual_exposure', value=enabled)
 
     def set_exposure(self, value: int):
         if not self._check_ready():
             return
         if self.expo is None or self.manual_expo is False:
+            self.logger.add_log('WARN', f'self.expo = {self.expo}, self.manual_expo = {self.manual_expo}')
             return
         if value == 0:
             self._send_change_notification()
@@ -285,6 +296,7 @@ class DvripController(QThread):
 
     def set_auto_gain(self, enabled: bool):
         if not self._check_ready() or self.auto_gain is None:
+            self.logger.add_log('WARN', f'self.auto_gain = {self.auto_gain}')
             return
         if enabled:
             #self._send_camera_command('auto_gain', 'Camera.Param.[0]', ['GainParam', 'AutoGain'], 1, 'auto_gain')
@@ -294,15 +306,15 @@ class DvripController(QThread):
             self._send_camera_command('auto_gain', 'Camera.ParamEx.[0]', ['BroadTrends', 'AutoGain'], 0, 'auto_gain')
 
     def set_gain(self, value: int):
-        print(f'[DVRIP].{self.slot}: SET_GAIN')
         if not self._check_ready() or self.gain is None:
-            print(f'self.expo = {self.gain}, self.auto_expo = {self.gain}')
+            self.logger.add_log('WARN', f'self.auto_gain = {self.auto_gain}, self.gain = {self.gain}')
             return
         #self._send_camera_command('gain', 'Camera.Param.[0]', ['GainParam', 'Gain'], value, 'gain')
         self._send_camera_command('gain', 'Camera.ParamEx.[0]', ['BroadTrends', 'Gain'], value, 'gain')
 
     def set_mirror(self, enabled: bool):
         if not self._check_ready() or self.mirror is None:
+            self.logger.add_log('WARN', f'self.mirror = {self.mirror}')
             return
         if enabled:
             result = self._send_camera_command('mirror', 'Camera.Param.[0]', ['PictureMirror'], '0x00000001')
@@ -310,9 +322,11 @@ class DvripController(QThread):
             result = self._send_camera_command('mirror', 'Camera.Param.[0]', ['PictureMirror'], '0x00000000')
         if result:
             self.config.set(self.system_id, self.slot, 'camera', 'mirror', value=enabled)
+            self.mirror = enabled
 
     def set_flip(self, enabled: bool):
         if not self._check_ready() and self.flip is None:
+            self.logger.add_log('WARN', f'self.flip = {self.flip}')
             return
         if enabled:
             result = self._send_camera_command('flip', 'Camera.Param.[0]', ['PictureFlip'], '0x00000001')
@@ -320,79 +334,12 @@ class DvripController(QThread):
             result = self._send_camera_command('flip', 'Camera.Param.[0]', ['PictureFlip'], '0x00000000')
         if result:
             self.config.set(self.system_id, self.slot, 'camera', 'flip', value=enabled)
+            self.flip = enabled
 
     def run(self):
-        print(f'[DVRIP].{self.slot}: ждем команду')
+        self.logger.add_log('INFO', f'Ждем команду')
         while self._running:
             command = self.commands.get()
-            print(command)
+            self.logger.add_log('DEBUG', f'command = {command}')
             if command is not None:
                 self._exec_command(command)
-
-
-
-
-'''
-    Simplify.Encode:
-[{
-'ExtraFormat': 
-{'AudioEnable': False, 
-'Video': 
-{
-'BitRate': 552, 'BitRateControl': 'VBR', 'Compression': 'H.264', 'FPS': 20, 'GOP': 2, 'Quality': 4, 'Resolution': 'HD1', 'VirtualGOP': 1}, 
-'VideoEnable': False
-}, 
-'MainFormat': {'AudioEnable': True, 
-'Video': 
-{
-'BitRate': 4096, 'BitRateControl': 'VBR', 'Compression': 'H.264', 'FPS': 20, 'GOP': 1, 'Quality': 1, 'Resolution': '1080P', 'VirtualGOP': 1}, 'VideoEnable': True
-}
-}]
-
-Camera:
-{'ClearFog': [{'enable': False, 'level': 50}], 
-'DistortionCorrect': {'Lenstype': 0, 'Version': 0}, 
-'FishLensParam': [{'CenterOffsetX': 500, 'CenterOffsetY': 360, 'ImageHeight': 720, 'ImageWidth': 1280, 'LensType': 0, 'PCMac': '000000000000', 'Radius': 300, 'Version': 0, 'ViewAngle': 0, 'ViewMode': 0, 'Zoom': 100}], 
-'Param': [
-{'AeSensitivity': 5, 
-'ApertureMode': '0x00000001', 
-'BLCMode': '0x00000001', 
-'DayNightColor': '0x00000000',  №№
-'Day_nfLevel': 0,  
-'DncThr': 30, 
-'ElecLevel': 50, 
-'EsShutter': '0x00000006', 
-'ExposureParam': {'LeastTime': '0x00000064', 'Level': 0, 'MostTime': '0x00013880'}, 
-'GainParam': {'AutoGain': 1, 'Gain': 50}
-'IRCUTMode': 1, 
-'InfraredSwap': 0, 
-'IrcutSwap': 1, 
-'Night_nfLevel': 3, 
-'PictureFlip': '0x00000001', 
-''' #
-'''
-'PictureMirror': '0x00000001', 
-'RejectFlicker': '0x00000000', 
-'WhiteBalance': '0x00000001'}
-], 
-'ParamEx': [
-{'AeMeansure': 0, 
-'AutomaticAdjustment': 3, 
-'BroadTrends': {'AutoGain': 0, 'Gain': 50}, 
-'CorridorMode': 0, 
-'Dis': 0, 
-'ExposureTime': '0x00000100', 
-'Ldc': 0, 
-'LightRestrainLevel': 0, 
-'LowLuxMode': 1, 
-'PreventOverExpo': 0, 
-'SoftPhotosensitivecontrol': 0, 
-'Style': 'type1'}
-], 
-'WhiteLight': 
-{'Brightness': 50, 
-'MoveTrigLight': {'Duration': 60, 'Level': 1}, 
-'WorkMode': 'Auto', 
-'WorkPeriod': {'EHour': 6, 'EMinute': 0, 'Enable': 1, 'SHour': 18, 'SMinute': 0}}}
-
-    '''

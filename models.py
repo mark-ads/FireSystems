@@ -22,7 +22,7 @@ class CameraConfig(BaseModel):
     password: str = ''
     fps: int = 25
     auto_gain: int = 1
-    auto_exposure: bool = True
+    manual_exposure: bool = True
     gain: int = 1
     exposure: int = 1
     brightness: float = 35.0
@@ -44,6 +44,8 @@ class ZondPair(BaseModel):
 
 class ProgramConfig(BaseModel):
     ip: IPvAnyAddress = '192.168.1.10'
+    console_on: bool = True
+    log_level: Literal['DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'] = 'DEBUG'
 
 
 def default_zond_pairs():

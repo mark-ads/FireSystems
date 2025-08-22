@@ -2,19 +2,23 @@ from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtCore import QUrl
 from PyQt5.QtGui import QIcon
 from config import Config
+from logs import MultiLogger
+from zond.backend import SignalHub
 from zond.systems_controller import SystemsController
 from camera.camera_stream import VideoStream
 from camera.image_provider import CameraImageProvider
 from controls.onvif_controller import OnvifController
 from controls.dvrip_controller import DvripController
+from controls.udp_controller import UdpController
 from viewmodels.viewmodel import Viewmodel
 
 streams = []
 
 def create_app(app):
     config = Config()
+    logger = MultiLogger(config)
+    config.add_logger(logger)
     '''
-    systems_controller = SystemsController(config)
     print('system 1 = ' + systems_controller.system_1.id)
     print('system 2 = ' + systems_controller.system_2.name)
 
@@ -23,11 +27,15 @@ def create_app(app):
     print('program ip = ' + config.get_sys_settings('ip'))
 
     '''
-    onvif_front = OnvifController(config, 'system_1', 'front')
-    onvif_back = OnvifController(config, 'system_1', 'back')
-    dvrip_front = DvripController(config, 'system_1', 'front')
-    dvrip_back = DvripController(config, 'system_1', 'back')
-    viewmodel = Viewmodel(onvif_front, onvif_back, dvrip_front, dvrip_back)
+    onvif_front = OnvifController(config, logger, 'system_1', 'front')
+    onvif_back = OnvifController(config, logger, 'system_1', 'back')
+    dvrip_front = DvripController(config, logger, 'system_1', 'front')
+    dvrip_back = DvripController(config, logger, 'system_1', 'back')
+    udp_front = UdpController(config, logger, 'system_1', 'front')
+    udp_back = UdpController(config, logger, 'system_1', 'back')
+    viewmodel = Viewmodel(onvif_front, onvif_back, dvrip_front, dvrip_back, udp_front, udp_back)
+    hub = SignalHub(viewmodel)
+    systems_controller = SystemsController(config, logger, hub)
     globals()["viewmodel"] = viewmodel
 
     engine = QQmlApplicationEngine()

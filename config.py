@@ -1,11 +1,12 @@
 from ruamel.yaml import YAML
 from pathlib import Path
 from PyQt5.QtCore import QObject, pyqtSignal, QReadWriteLock
-from models import Settings
+from models import ArduinoConfig, Settings
 from pydantic import ValidationError
 from collections import OrderedDict
 from models import ZondPair, CameraConfig
 from typing import Union
+
 
 yaml = YAML()
 yaml.indent(mapping=2, sequence=4, offset=2)
@@ -21,14 +22,8 @@ class Config(QObject):
         self.path = Path(path)
         self.settings = {}
         self.load()
+        self.logger = None
         print('Конфиг загружен')
-
-    @property
-    def systems(self) -> OrderedDict[str, ZondPair]:
-        return self.settings.zond_pairs
-
-    def __getitem__(self, key: str) -> ZondPair:
-        return self.systems[key]
 
     def load(self):
         self._lock.lockForWrite()
@@ -71,6 +66,17 @@ class Config(QObject):
     def use_defaults(self):
         self.settings = Settings()
 
+    @property
+    def systems(self) -> OrderedDict[str, ZondPair]:
+        return self.settings.zond_pairs
+
+    def __getitem__(self, key: str) -> ZondPair:
+        return self.systems[key]
+
+    def add_logger(self, logger):
+        from logs import MultiLogger
+        self.logger = logger.get_logger('app')
+
     def get_str(self, sys_key: str, *path: str) -> str:
         '''Получить настройки. Вводим путь через аргументы path.
         (hint: system_id, slot, device, field)
@@ -81,9 +87,9 @@ class Config(QObject):
                 node = getattr(node, part)
             return str(node)
         except AttributeError:
-            raise KeyError(f"Нет поля {'->'.join((sys_key,) + path)} в настройках")
+            self.logger.add_log('ERROR', f'Нет поля {'->'.join((sys_key,) + path)} в настройках')
         except KeyError:
-            raise KeyError(f"Нет системы с ключом '{sys_key}'")
+            self.logger.add_log('ERROR', f'Нет системы с ключом "{sys_key}"')
 
     def get_onvif_settings(self, sys_key: str, slot: str, field: str) -> float:
         '''Получить числовую настройку камеры (float)'''
@@ -96,12 +102,30 @@ class Config(QObject):
             if isinstance(result, float):
                 return result
             else:
-                raise TypeError(f"Поле {field} не является float (тип: {type(result).__name__})")
+                self.logger.add_log('ERROR', f'Поле {field} не является float (тип: {type(result).__name__})')
 
         except AttributeError:
-            raise KeyError(f"Нет поля {field} в настройках камеры")
+            self.logger.add_log('ERROR', f'Нет поля {field} в настройках камеры')
         except KeyError:
-            raise KeyError(f"Нет системы с ключом '{sys_key}'")
+            self.logger.add_log('ERROR', f'Нет системы с ключом "{sys_key}"')
+
+    def get_arduino_settings(self, sys_key: str, slot: str, field: str) -> Union[float, bool]:
+        '''Получить числовую настройку ардуино (float | bool)'''
+        try:
+            zond_pair = self.settings.zond_pairs[sys_key]
+            pair = getattr(zond_pair, slot)
+            arduino: ArduinoConfig = pair.arduino
+            result = getattr(arduino, field)
+
+            if isinstance(result, float) or isinstance(result, bool):
+                return result
+            else:
+                self.logger.add_log('ERROR', f'Поле {field} не является float или bool (тип: {type(result).__name__})')
+
+        except AttributeError:
+            self.logger.add_log('ERROR', f'Нет поля {field} в настройках ардуино')
+        except KeyError:
+            self.logger.add_log('ERROR', f'Нет системы с ключом "{sys_key}"')
 
     def get(self, sys_key: str, *path: str) -> Union[int, float, str]:
         '''Получить настройку не меняя и не проверяя тип
@@ -113,9 +137,9 @@ class Config(QObject):
                 node = getattr(node, part)
             return node
         except AttributeError:
-            raise KeyError(f"Нет поля {'->'.join((sys_key,) + path)} в настройках")
+            self.logger.add_log('ERROR', f"Нет поля {'->'.join((sys_key,) + path)} в настройках")
         except KeyError:
-            raise KeyError(f"Нет системы с ключом '{sys_key}'")
+            self.logger.add_log('ERROR', f'Нет системы с ключом "{sys_key}"')
 
     def get_sys_settings(self, *path: str) -> str:
         '''Получить настроки программы'''
@@ -125,7 +149,18 @@ class Config(QObject):
                 node = getattr(node, part)
                 return str(node)
         except AttributeError:
-            raise KeyError(f"Нет поля {path} в настройках")
+            self.logger.add_log('ERROR', f'Нет поля {path} в настройках')
+
+    def get_sys_settings_bool(self, *path: str) -> bool:
+        '''Получить настроки программы'''
+        try:
+            node = self.settings.program_settings
+            for part in path:
+                node = getattr(node, part)
+            if isinstance(node, bool):
+                return node
+        except AttributeError:
+            self.logger.add_log('ERROR', f'Нет поля {path} в настройках')
 
     def set(self, sys_key: str, *path: str, value: Union[int, float, bool]):
         '''
@@ -139,6 +174,6 @@ class Config(QObject):
                 node = getattr(node, part)
             setattr(node, path[-1], value)
             self._save_unlocked()
-            print('изменения сохранены')
+            self.logger.add_log('DEBUG', f'Изменения сохранены: {node}{path[-1]} = {value}')
         finally:
             self._lock.unlock()

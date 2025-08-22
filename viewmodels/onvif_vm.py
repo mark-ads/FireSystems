@@ -1,5 +1,5 @@
 from controls.onvif_controller import OnvifController
-from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty, QVariant
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty, QVariant, QTimer
 from models import Command
 from typing import Literal
 
@@ -33,6 +33,11 @@ class OnvifVM(QObject):
 
         self.front.onvifChangeNotification.connect(self.update_current_params)
         self.back.onvifChangeNotification.connect(self.update_current_params)
+
+        self.feedback_timer_front = QTimer(self)
+        self.feedback_timer_front.timeout.connect(self._check_changes_front)
+        self.feedback_timer_back = QTimer(self)
+        self.feedback_timer_back.timeout.connect(self._check_changes_back)
 
     @pyqtSlot()
     def connect(self):
@@ -125,6 +130,37 @@ class OnvifVM(QObject):
             self.front.add_command(cmd)
         elif slot == 'back':
             self.back.add_command(cmd)
+        self._start_feedback_timer(slot)
+
+    @pyqtSlot(str, str, int)
+    def forward_int_command(self, slot: Literal['front', 'back'], command: str, value: int):
+        cmd = Command(
+            target=slot,
+            command=command,
+            value=value
+            )
+        if slot == 'front':
+            self.front.add_command(cmd)
+
+        elif slot == 'back':
+            self.back.add_command(cmd)
+        self._start_feedback_timer(slot)
+
+    def _start_feedback_timer(self, slot: str):
+        if slot == 'front':
+            self.feedback_timer_front.stop()
+            self.feedback_timer_front.start(1500)
+        if slot == 'back':
+            self.feedback_timer_back.stop()
+            self.feedback_timer_back.start(1500)
+
+    def _check_changes_front(self):
+        self.feedback_timer_front.stop()
+        self.front.commands.put(Command(target='front', command='check_changes'))
+
+    def _check_changes_back(self):
+        self.feedback_timer_back.stop()
+        self.back.commands.put(Command(target='back', command='check_changes'))
 
     @pyqtSlot(str)
     def update_current_params(self, slot: Literal['front', 'back']):
@@ -133,10 +169,8 @@ class OnvifVM(QObject):
             self.frontBrightness = b
             self.frontContrast = c
             self.frontSaturation = s
-            print('front:', b, c, s)
         else:
             b, c, s = self.back.get_current_params()
             self.backBrightness = b
             self.backContrast = c
             self.backSaturation = s
-            print('back:', b, c, s)

@@ -35,7 +35,7 @@ Item {
                     id: frontNoSignalText
                     width: 240
                     height: 68
-                    text: qsTr("НЕТ СИГНАЛА")
+                    text: "НЕТ СИГНАЛА"
                     font.pixelSize: 30
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -67,17 +67,19 @@ Item {
                 height: 31
                 color: "#ffffff"
                 border.width: 1
+
                 Text {
                     id: frontTitleText
                     x: 0
                     y: 1
                     width: 960
                     height: 30
-                    text: qsTr("СТОРОНА ФРОНТА")
+                    text: "СТОРОНА ФРОНТА"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
+
 
                 Rectangle {
                     id: frontIndicator
@@ -85,21 +87,165 @@ Item {
                     y: 3
                     width: 175
                     height: 24
-                    color: "#8cf383"
+                    color: "#00d3d3d3"
                     radius: 6
                     border.width: 2
-                    Text {
-                        id: frontIndicatorText
+
+                    property int state: viewmodel.udp.frontState
+
+                    Rectangle {
+                        id: frontOfflineIndicator
                         x: 0
                         y: 0
                         width: 175
                         height: 24
-                        text: qsTr("В РАБОТЕ")
-                        font.pixelSize: 20
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.bold: true
+                        visible: frontIndicator.state === -1
+                        color: "#d3d3d3"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: frontInOfflineIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            text: "НЕТ СВЯЗИ"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
                     }
+
+
+                    Rectangle {
+                        id: frontReadyIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: frontIndicator.state === 0
+                        color: "#dfffa1"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: frontInReadyIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            text: "ГОТОВ"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        id: frontPreparingIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: frontIndicator.state >= 1 && frontIndicator.state <= 2
+                        color: "#ffe88a"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: frontInPreparingIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            text: "ПОДГОТОВКА"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+
+
+                    Rectangle {
+                        id: frontInWorkIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: frontIndicator.state === 3
+                        color: "#90ee90"
+                        radius: 6
+                        border.width: 2
+
+                        Text {
+                            id: frontInWorkIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            visible: true
+                            text: "В РАБОТЕ"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        id: frontErrorIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: frontIndicator.state === 4
+                        color: "#fd5c78"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: frontErrorIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            visible: true
+                            text: "ОШИБКА"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        id: frontRestartIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: frontIndicator.state === 5
+                        color: "#ffd06b"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: frontRestartIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            visible: true
+                            text: "ОСТАНОВЛЕН"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+
+
+
+
                 }
             }
 
@@ -128,7 +274,7 @@ Item {
                     id: backNoSignalText
                     width: 240
                     height: 68
-                    text: qsTr("НЕТ СИГНАЛА")
+                    text: "НЕТ СИГНАЛА"
                     font.pixelSize: 30
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -166,7 +312,7 @@ Item {
                     y: 1
                     width: 960
                     height: 30
-                    text: qsTr("СТОРОНА ТЫЛА")
+                    text: "СТОРОНА ТЫЛА"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
@@ -178,20 +324,157 @@ Item {
                     y: 3
                     width: 175
                     height: 24
-                    color: "#8cf383"
+                    color: "#00d3d3d3"
                     radius: 6
                     border.width: 2
-                    Text {
-                        id: backIndicatorText
+
+                    property int state: viewmodel.udp.backState
+
+                    Rectangle {
+                        id: backOfflineIndicator
                         x: 0
                         y: 0
                         width: 175
                         height: 24
-                        text: qsTr("В РАБОТЕ")
-                        font.pixelSize: 20
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.bold: true
+                        visible: backIndicator.state === -1
+                        color: "#d3d3d3"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: backInOfflineIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            text: "НЕТ СВЯЗИ"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        id: backReadyIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: backIndicator.state === 0
+                        color: "#dfffa1"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: backInReadyIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            text: "ГОТОВ"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        id: backPreparingIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: backIndicator.state >= 1 && backIndicator.state <= 2
+                        color: "#ffe88a"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: backInPreparingIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            text: "ПОДГОТОВКА"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        id: backInWorkIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: backIndicator.state === 3
+                        color: "#90ee90"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: backInWorkIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            visible: true
+                            text: "В РАБОТЕ"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        id: backtErrorIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: backIndicator.state === 4
+                        color: "#fd5c78"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: backErrorIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            visible: true
+                            text: "ОШИБКА"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        id: backRestartIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: backIndicator.state === 5
+                        color: "#ffd06b"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: backRestartIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            visible: true
+                            text: "ОСТАНОВЛЕН"
+                            font.pixelSize: 20
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
                     }
                 }
             }
