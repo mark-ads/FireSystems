@@ -125,7 +125,7 @@ Item {
                         width: 175
                         height: 24
                         visible: frontIndicator.state === 0
-                        color: "#dfffa1"
+                        color: "#94f7ff"
                         radius: 6
                         border.width: 2
                         Text {
@@ -361,7 +361,7 @@ Item {
                         width: 175
                         height: 24
                         visible: backIndicator.state === 0
-                        color: "#dfffa1"
+                        color: "#94f7ff"
                         radius: 6
                         border.width: 2
                         Text {

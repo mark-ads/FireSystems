@@ -53,7 +53,7 @@ class OnvifController(QThread):
                 self.logger.add_log('INFO', f'УСПЕШНОЕ ПОДКЛЮЧЕНИЕ')
         except Exception as e:
             self.disconnect()
-            self.logger.add_log('CRITICAL', f'Подключение к не удалось: {e}')
+            self.logger.add_log('DEBUG', f'Подключение к не удалось: {e}')
 
     def disconnect(self):
         self.is_online = False

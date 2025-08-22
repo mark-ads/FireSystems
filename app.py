@@ -4,6 +4,7 @@ from PyQt5.QtGui import QIcon
 from config import Config
 from logs import MultiLogger
 from zond.backend import SignalHub
+from zond.sender import UdpSender
 from zond.systems_controller import SystemsController
 from camera.camera_stream import VideoStream
 from camera.image_provider import CameraImageProvider
@@ -31,8 +32,9 @@ def create_app(app):
     onvif_back = OnvifController(config, logger, 'system_1', 'back')
     dvrip_front = DvripController(config, logger, 'system_1', 'front')
     dvrip_back = DvripController(config, logger, 'system_1', 'back')
-    udp_front = UdpController(config, logger, 'system_1', 'front')
-    udp_back = UdpController(config, logger, 'system_1', 'back')
+    sender = UdpSender()
+    udp_front = UdpController(config, logger, sender, 'system_1', 'front')
+    udp_back = UdpController(config, logger, sender, 'system_1', 'back')
     viewmodel = Viewmodel(onvif_front, onvif_back, dvrip_front, dvrip_back, udp_front, udp_back)
     hub = SignalHub(viewmodel)
     systems_controller = SystemsController(config, logger, hub)

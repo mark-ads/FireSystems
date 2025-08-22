@@ -51,7 +51,7 @@ class Receiver(QThread):
                 data = data.decode()
                 sender_ip = addr[0]
                 if sender_ip in self.ip_map:
-                    self.logger.add_log('DEBUG', f'Принят пакет контроллера: {sender_ip}')
+                    #self.logger.add_log('DEBUG', f'Принят пакет контроллера: {sender_ip}')
                     self.ip_map[sender_ip][0].handle_arduino_message(data)
                 else:
                     self.logger.add_log('WARN', f'Принят НЕИЗВЕСТНЫЙ отправитель. {sender_ip}')

@@ -1,12 +1,13 @@
 from queue import Queue
 from onvif import ONVIFCamera
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer
-from PyQt5.QtNetwork import QUdpSocket, QHostAddress
+from PyQt5.QtNetwork import QHostAddress
 from zeep import xsd
 from typing import Literal
 from config import Config
 from logs import MultiLogger
 from models import Command
+from zond.sender import UdpSender
 
 
 class UdpController(QObject):
@@ -21,16 +22,14 @@ class UdpController(QObject):
 
     udpChangeNotification = pyqtSignal(str)
 
-    def __init__(self, config: Config, logger: MultiLogger, system_id: str, slot: Literal['front', 'back']):
+    def __init__(self, config: Config, logger: MultiLogger, socket: UdpSender, system_id: str, slot: Literal['front', 'back']):
         super().__init__()
         self.config = config
         self.system_id = system_id
         self.slot = slot
+        self.socket = socket
         self.logger = logger.get_logger(f'upd_{self.slot}')
         self.disconnect()
-        self.socket = QUdpSocket(self)
-        result = self.socket.bind(QHostAddress.Any, 80)
-        self.logger.add_log('WARN', f'[{self.slot}]: BIND = {result}')
 
         self.feedback_timer = QTimer(self)
         self.feedback_timer.timeout.connect(self._check_changes)
@@ -73,9 +72,7 @@ class UdpController(QObject):
             self.logger.add_log('ERROR', f'Контроллер не в сети или не готов к работе.')
 
     def _send_command(self, data: str):
-        print(data)
-        data = data.encode()
-        self.socket.writeDatagram(data, self.ip, self.port)
+        self.socket.send(self.ip, data)
 
     def _update_param(self, name: str, value: float = None):
         pass
@@ -120,3 +117,11 @@ class UdpController(QObject):
     def reboot(self):
         self.logger.add_log('DEBUG', f'Command = reboot')
         self._send_command('restartZ')
+
+    def turn_right(self, value):
+        self.logger.add_log('DEBUG', f'Command = turn_right {value}')
+        self._send_command(f'r_{value}_r')
+
+    def turn_left(self, value):
+        self.logger.add_log('DEBUG', f'Command = turn_left {value}')
+        self._send_command(f'r_{value}_l')

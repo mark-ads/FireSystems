@@ -1,9 +1,15 @@
+from collections import deque
 from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal
 from typing import Literal
 from config import Config
 from logs import MultiLogger
 from signal_hub import SignalHub
 from .dicts import errors_map, mods, limit_switch, temperature_map, pressure_map
+from datetime import datetime
+
+
+def get_time():
+    return datetime.now().strftime("%H:%M:%S")
 
 class Backend(QObject):
     '''
@@ -19,8 +25,6 @@ class Backend(QObject):
         self.logger = logger
         if slot not in ('front', 'back'):
             self.logger.add_log('ERROR', f'Не правильный ключ: {slot}')
-        if not isinstance(config, Config):
-            self.logger.add_log('ERROR', f'config не является объектом класса Config')
         self.config = config
         self.hub = hub
         self.system_id = system_id
@@ -29,13 +33,15 @@ class Backend(QObject):
         self.update_settings()
         
         self.zond_status = -1
-        self.errors = []
+        self.errors = [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]
         self.limit_switch_status = 0
         self.temperatures = []
         self.angle = 0
         self.pressures = []
         self.wp_temp = 0
         self.time_online = 0
+
+        self.logs = deque(maxlen=35)
         
         self.logger.add_log('INFO', f'{self.system_id}.[{self.slot}] создан. ip = {self.ip}')
 
@@ -48,6 +54,8 @@ class Backend(QObject):
         '''Получение и перенаправление дальше строки от Ардуино'''
         if data.startswith('MOD:'):
             self._process_mod_message(data)
+        else:
+            self.logger.add_log('WARN', f'[{self.slot}] Принят пакет: {data}')
 
     def _process_mod_message(self, data: str) -> None:
         '''Обработка обычного сообщения от Ардуино'''
@@ -67,23 +75,30 @@ class Backend(QObject):
         if mod != self.zond_status:
             self.zond_status = mod
             self.logger.add_log('INFO', f'[{self.slot}] MOD: {str(mod)}, статус: {mods[mod]}')
-            
+            self.logs.append(f'[{get_time()}] {mods[mod]}')
 
     def _process_mod_errors(self, data: str) -> None:
         '''Обработка блока ошибок'''
         data = data.split(',')
-        errors = []
         for i, bit in enumerate(data):
-            if bit == '1':
-                errors.appernd(f'{errors_map[i]}')
-        self.errors = errors
+            bit = int(bit)
+            if bit != self.errors[i]:
+                self.errors[i] = bit
+                if bit == 1:
+                    self.logger.add_log('ERROR', f'[{self.slot}] ОШИБКА зонда: {errors_map[i]}')
+                    self.logs.append(f'[{get_time()}][❌ОШИБКА] {errors_map[i]}')
+                else:
+                    self.logger.add_log('INFO', f'[{self.slot}] ошибка сброшена: {errors_map[i]}')
+                    self.logs.append(f'[{get_time()}][❌ОШИБКА] {errors_map[i]}')
+                    self.logs.append(f'[{get_time()}] ошибка сброшена: {errors_map[i]}')
 
     def _process_limit_switch(self, data: str) -> None:
         '''Обаботка концевого бита (зонд запаркован или в топке)'''
         data = int(data)
         if data != self.limit_switch_status:
             self.limit_switch_status = data
-            print(limit_switch[data])
+            self.logger.add_log('INFO', f'[{self.slot}] {limit_switch[data]}')
+            self.logs.append(f'[{get_time()}] {errors_map[i]}')
 
     def _process_mod_temperatures(self, data: str) -> None:
         '''Обработка блока с температурами'''
@@ -117,7 +132,7 @@ class Backend(QObject):
     def send_mod_data(self):
         data = {}
         data['status'] = self.zond_status
-        data['errors'] = self.errors
+        data['logs'] = self.logs
         data['limit_switch'] = self.limit_switch_status
         data['temps'] = self.temperatures
         data['angle'] = self.angle

@@ -37,29 +37,75 @@ Item {
                 height: 120
                 color: "#ffffff"
                 border.width: 1
+                property int state: viewmodel.udp.frontState
+                enabled: frontMovement.state === 3
+                opacity: enabled ? 1.0 : 0.5
+
 
                 Image {
-                    id: icon_0
+                    id: frontAngleIcon
                     x: 95
                     y: 10
                     source: "images/icon_0.png"
+                    rotation: viewmodel.udp.frontAngle
                     fillMode: Image.PreserveAspectFit
+                    opacity: frontMovement.enabled ? 1.0 : 0.5
+                }
+
+                MouseArea {
+                    id: frontRightMouseArea
+                    x: 186
+                    y: 28
+                    z: 10
+                    width: 64
+                    height: 64
+                    property bool pressed: false
+                    enabled: frontMovement.enabled
+                    onPressed: frontRightMouseArea.pressed = true
+                    onReleased: {
+                        frontRightMouseArea.pressed = false
+                        viewmodel.udp.forward_int_command("front", "turn_right", frontAngle.angle)
+                    }
+                    onCanceled: frontRightMouseArea.pressed = false
                 }
 
                 Image {
-                    id: turn_right
+                    id: turnRightIcon
                     x: 186
                     y: 28
                     source: "images/turn_right.png"
                     fillMode: Image.PreserveAspectFit
+                    opacity: frontMovement.enabled ? 1.0 : 0.5
+                    scale: frontRightMouseArea.pressed ? 0.9 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.InOutQuad } }
+                }
+
+                MouseArea {
+                    id: frontLeftMouseArea
+                    x: 20
+                    y: 28
+                    z: 10
+                    width: 64
+                    height: 64
+                    property bool pressed: false
+                    enabled: frontMovement.enabled
+                    onPressed: frontLeftMouseArea.pressed = true
+                    onReleased: {
+                        frontLeftMouseArea.pressed = false
+                        viewmodel.udp.forward_int_command("front", "turn_left", frontAngle.angle)
+                    }
+                    onCanceled: frontLeftMouseArea.pressed = false
                 }
 
                 Image {
-                    id: turn_left
+                    id: turnLeftIcon
                     x: 20
                     y: 28
                     source: "images/turn_left.png"
                     fillMode: Image.PreserveAspectFit
+                    opacity: frontMovement.enabled ? 1.0 : 0.5
+                    scale: frontLeftMouseArea.pressed ? 0.9 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.InOutQuad } }
                 }
 
                 Text {
@@ -68,23 +114,15 @@ Item {
                     y: 88
                     width: 80
                     height: 24
-                    text: qsTr("0*")
+                    text: viewmodel.udp.frontAngle + "°"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     font.bold: true
+                    opacity: frontMovement.enabled ? 1.0 : 0.5
                 }
             }
 
-            Rectangle {
-                id: frontLogs
-                x: 0
-                y: 0
-                width: 346
-                height: 450
-                color: "#ffffff"
-                border.width: 1
-            }
 
             Rectangle {
                 id: frontAngle
@@ -94,6 +132,8 @@ Item {
                 height: 80
                 color: "#ffffff"
                 border.width: 1
+
+                property int angle: 45
 
                 Rectangle {
                     id: frontM5
@@ -110,9 +150,14 @@ Item {
                         y: 1
                         width: 59
                         height: 43
-                        text: qsTr("-5*")
+                        text: "-5°"
                         font.pointSize: 16
                         font.bold: true
+                        onReleased: {
+                            if (frontAngle.angle > 5) {
+                            frontAngle.angle = frontAngle.angle - 5
+                            }
+                        }
                     }
                 }
 
@@ -130,9 +175,14 @@ Item {
                         y: 1
                         width: 59
                         height: 43
-                        text: qsTr("+5*")
+                        text: "+5°"
                         font.pointSize: 16
                         font.bold: true
+                        onReleased: {
+                            if (frontAngle.angle < 90) {
+                            frontAngle.angle = frontAngle.angle + 5
+                            }
+                        }
                     }
                 }
 
@@ -151,11 +201,19 @@ Item {
                         y: 0
                         width: 90
                         height: 45
-                        text: qsTr("45*")
+                        text: frontAngle.angle + "°"
                         font.pixelSize: 18
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         font.bold: false
+                        onTextChanged: {
+                            if (parseInt(text) > 90) {
+                                text = "90"
+                            }
+                            if (parseInt(text) < 5) {
+                                text = "5"
+                            }
+                        }
                     }
                 }
 
@@ -170,6 +228,37 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                     font.bold: false
+                }
+            }
+
+            Rectangle {
+                id: frontLogs
+                x: 0
+                y: 0
+                width: 346
+                height: 450
+                color: "#ffffff"
+                border.width: 1
+
+                ListView {
+                    id: frontLogsView
+                    x: 3
+                    width: 343
+                    height: parent.height
+                    clip: true
+                    model: viewmodel.udp.frontLogs
+
+                    delegate: Text {
+                        text: modelData
+                        color: "black"
+                        font.pixelSize: 14
+                        wrapMode: Text.Wrap
+                        width: frontLogsView.width - 7
+                    }
+
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AlwaysOn
+                    }
                 }
             }
 
@@ -947,6 +1036,235 @@ Item {
             color: "#ffffff"
             border.width: 1
 
+
+
+            Rectangle {
+                id: backMovement
+                x: 345
+                y: 0
+                width: 270
+                height: 120
+                color: "#ffffff"
+                border.width: 1
+                property int state: viewmodel.udp.backState
+                enabled: backMovement.state === 3
+                opacity: enabled ? 1.0 : 0.5
+
+
+                Image {
+                    id: backAngleIcon
+                    x: 95
+                    y: 10
+                    source: "images/icon_0.png"
+                    rotation: viewmodel.udp.backAngle
+                    fillMode: Image.PreserveAspectFit
+                    opacity: backMovement.enabled ? 1.0 : 0.5
+                }
+
+                MouseArea {
+                    id: backRightMouseArea
+                    x: 186
+                    y: 28
+                    z: 10
+                    width: 64
+                    height: 64
+                    property bool pressed: false
+                    enabled: backMovement.enabled
+                    onPressed: backRightMouseArea.pressed = true
+                    onReleased: {
+                        backRightMouseArea.pressed = false
+                        viewmodel.udp.forward_int_command("back", "turn_right", backAngle.angle)
+                    }
+                    onCanceled: backRightMouseArea.pressed = false
+                }
+
+                Image {
+                    id: backRightIcon
+                    x: 186
+                    y: 28
+                    source: "images/turn_right.png"
+                    fillMode: Image.PreserveAspectFit
+                    opacity: backMovement.enabled ? 1.0 : 0.5
+                    scale: backRightMouseArea.pressed ? 0.9 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.InOutQuad } }
+                }
+
+                MouseArea {
+                    id: backLeftMouseArea
+                    x: 20
+                    y: 28
+                    z: 10
+                    width: 64
+                    height: 64
+                    property bool pressed: false
+                    enabled: backMovement.enabled
+                    onPressed: backLeftMouseArea.pressed = true
+                    onReleased: {
+                        backLeftMouseArea.pressed = false
+                        viewmodel.udp.forward_int_command("back", "turn_left", backAngle.angle)
+                    }
+                    onCanceled: backLeftMouseArea.pressed = false
+                }
+
+                Image {
+                    id: backLeftIcon
+                    x: 20
+                    y: 28
+                    source: "images/turn_left.png"
+                    fillMode: Image.PreserveAspectFit
+                    opacity: backMovement.enabled ? 1.0 : 0.5
+                    scale: backLeftMouseArea.pressed ? 0.9 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 100; easing.type: Easing.InOutQuad } }
+                }
+
+                Text {
+                    id: backAngleText
+                    x: 95
+                    y: 88
+                    width: 80
+                    height: 24
+                    text: viewmodel.udp.backAngle + "°"
+                    font.pixelSize: 18
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font.bold: true
+                    opacity: backMovement.enabled ? 1.0 : 0.5
+                }
+            }
+
+
+            Rectangle {
+                id: backAngle
+                x: 345
+                y: 118
+                width: 270
+                height: 80
+                color: "#ffffff"
+                border.width: 1
+
+                property int angle: 45
+
+                Rectangle {
+                    id: backM5
+                    x: 30
+                    y: 8
+                    width: 60
+                    height: 45
+                    color: "#ffffff"
+                    border.width: 1
+
+                    Button {
+                        id: backM5Button
+                        x: 1
+                        y: 1
+                        width: 59
+                        height: 43
+                        text: "-5°"
+                        font.pointSize: 16
+                        font.bold: true
+                        onReleased: {
+                            if (backAngle.angle > 5) {
+                            backAngle.angle = backAngle.angle - 5
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    id: backP5
+                    x: 180
+                    y: 8
+                    width: 60
+                    height: 45
+                    color: "#ffffff"
+                    border.width: 1
+
+                    Button {
+                        id: backP5Button
+                        y: 1
+                        width: 59
+                        height: 43
+                        text: "+5°"
+                        font.pointSize: 16
+                        font.bold: true
+                        onReleased: {
+                            if (backAngle.angle < 90) {
+                            backAngle.angle = backAngle.angle + 5
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    id: backAngleIndicator
+                    x: 90
+                    y: 8
+                    width: 90
+                    height: 45
+                    color: "#ffffff"
+                    border.width: 1
+
+                    Text {
+                        id: backAngleIndicatorText
+                        x: 0
+                        y: 0
+                        width: 90
+                        height: 45
+                        text: backAngle.angle + "°"
+                        font.pixelSize: 18
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        font.bold: false
+                    }
+                }
+
+                Text {
+                    id: backAngleTitle
+                    x: 0
+                    y: 53
+                    width: 270
+                    height: 27
+                    text: "УГОЛ ПОВОРОТА"
+                    font.pixelSize: 18
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font.bold: false
+                }
+            }
+
+            Rectangle {
+                id: backLogs
+                x: 614
+                y: 0
+                z: 10
+                width: 346
+                height: 450
+                color: "#ffffff"
+                border.width: 1
+
+                ListView {
+                    id: backLogsView
+                    x: 3
+                    y: 0
+                    width: 343
+                    height: parent.height
+                    clip: true
+                    model: viewmodel.udp.backLogs
+
+                    delegate: Text {
+                        text: modelData
+                        color: "black"
+                        font.pixelSize: 14
+                        wrapMode: Text.Wrap
+                        width: backLogsView.width - 7
+                    }
+
+                    ScrollBar.vertical: ScrollBar {
+                        policy: ScrollBar.AlwaysOn
+                    }
+                }
+            }
+
             Rectangle {
                 id: backSettings
                 x: 90
@@ -981,7 +1299,7 @@ Item {
                             y: 0
                             width: 180
                             height: 30
-                            text: qsTr("Выдержка")
+                            text: "Выдержка"
                             font.pixelSize: 20
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
@@ -1297,9 +1615,9 @@ Item {
                         value: (viewmodel.onvif.backBrightness !== null && viewmodel.onvif.backBrightness !== undefined) ? viewmodel.onvif.backBrightness : 50
                         stepSize: 2
                         onValueChanged: {
-                                                if (enabled) {
-                                                    viewmodel.onvif.forward_float_command("back", "set_brightness", value)
-                                                }
+                            if (enabled) {
+                                viewmodel.onvif.forward_float_command("back", "set_brightness", value)
+                            }
                         }
                         enabled: viewmodel.onvif.backBrightness !== null && viewmodel.onvif.backBrightness !== undefined
                         to: 100
@@ -1338,9 +1656,9 @@ Item {
                         value: (viewmodel.onvif.backContrast !== null && viewmodel.onvif.backContrast !== undefined) ? viewmodel.onvif.backContrast : 50
                         stepSize: 2
                         onValueChanged: {
-                                                if (enabled) {
-                                                    viewmodel.onvif.forward_float_command("back", "set_contrast", value)
-                                                }
+                            if (enabled) {
+                                viewmodel.onvif.forward_float_command("back", "set_contrast", value)
+                            }
                         }
                         enabled: viewmodel.onvif.backContrast !== null && viewmodel.onvif.backContrast !== undefined
                         to: 100
@@ -1363,7 +1681,7 @@ Item {
                         width: 180
                         height: 30
                         color: (viewmodel.onvif.backSaturation !== null && viewmodel.onvif.backSaturation !== undefined) ? "black" : "gray"
-                        text: qsTr("Насыщенность")
+                        text: "Насыщенность"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
@@ -1380,60 +1698,14 @@ Item {
                         value: (viewmodel.onvif.backSaturation !== null && viewmodel.onvif.backSaturation !== undefined) ? viewmodel.onvif.backSaturation : 50
                         stepSize: 2
                         onValueChanged: {
-                                                if (enabled) {
-                                                    viewmodel.onvif.forward_float_command("back", "set_saturation", value)
-                                                }
-                                            }
+                            if (enabled) {
+                                viewmodel.onvif.forward_float_command("back", "set_saturation", value)
+                            }
+                        }
                         enabled: viewmodel.onvif.backSaturation !== null && viewmodel.onvif.backSaturation !== undefined
                         to: 100
                         from: 0
                     }
-                }
-            }
-
-            Rectangle {
-                id: backMovement
-                x: 345
-                y: 0
-                width: 270
-                height: 120
-                color: "#ffffff"
-                border.width: 1
-                Image {
-                    id: icon_1
-                    x: 95
-                    y: 10
-                    source: "images/icon_0.png"
-                    fillMode: Image.PreserveAspectFit
-                }
-
-                Image {
-                    id: turn_right1
-                    x: 186
-                    y: 28
-                    source: "images/turn_right.png"
-                    fillMode: Image.PreserveAspectFit
-                }
-
-                Image {
-                    id: turn_left1
-                    x: 20
-                    y: 28
-                    source: "images/turn_left.png"
-                    fillMode: Image.PreserveAspectFit
-                }
-
-                Text {
-                    id: backAngleText
-                    x: 95
-                    y: 88
-                    width: 80
-                    height: 24
-                    text: qsTr("0*")
-                    font.pixelSize: 18
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font.bold: true
                 }
             }
 
@@ -1746,101 +2018,6 @@ Item {
 
             }
 
-            Rectangle {
-                id: backAngle
-                x: 345
-                y: 118
-                width: 270
-                height: 80
-                color: "#ffffff"
-                border.width: 1
-                Rectangle {
-                    id: backM5
-                    x: 30
-                    y: 8
-                    width: 60
-                    height: 45
-                    color: "#ffffff"
-                    border.width: 1
-
-                    Button {
-                        id: backM5Button
-                        x: 1
-                        y: 1
-                        width: 59
-                        height: 43
-                        text: "-5*"
-                        font.pointSize: 16
-                        font.bold: true
-                    }
-                }
-
-                Rectangle {
-                    id: backP5
-                    x: 180
-                    y: 8
-                    width: 60
-                    height: 45
-                    color: "#ffffff"
-                    border.width: 1
-
-                    Button {
-                        id: backP5Button
-                        x: 0
-                        y: 1
-                        width: 59
-                        height: 43
-                        text: "+5*"
-                        font.bold: true
-                        font.pointSize: 16
-                    }
-                }
-
-                Rectangle {
-                    id: backAngleIndicator
-                    x: 90
-                    y: 8
-                    width: 90
-                    height: 45
-                    color: "#ffffff"
-                    border.width: 1
-                    Text {
-                        id: frontAngleIndicatorText1
-                        x: 0
-                        y: 0
-                        width: 90
-                        height: 45
-                        text: "45*"
-                        font.pixelSize: 18
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.bold: false
-                    }
-                }
-
-                Text {
-                    id: backAngleTitle
-                    x: 0
-                    y: 53
-                    width: 270
-                    height: 27
-                    text: "УГОЛ ПОВОРОТА"
-                    font.pixelSize: 18
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font.bold: false
-                }
-            }
-
-            Rectangle {
-                id: backLogs
-                x: 614
-                y: 0
-                width: 346
-                height: 450
-                color: "#ffffff"
-                border.width: 1
-            }
         }
 
         Rectangle {
