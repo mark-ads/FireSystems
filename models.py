@@ -46,6 +46,7 @@ class ProgramConfig(BaseModel):
     ip: IPvAnyAddress = '192.168.1.10'
     console_on: bool = True
     log_level: Literal['DEBUG', 'INFO', 'WARN', 'ERROR', 'CRITICAL'] = 'DEBUG'
+    test_mode: bool = False
 
 
 def default_zond_pairs():
@@ -67,6 +68,10 @@ class Settings(BaseModel):
         validate_assignment=True,
         populate_by_name=True
     )
+
+
+class Slot:
+    slot: Literal['front', 'back'] ######### доделать
 
 
 @dataclass

@@ -1,18 +1,86 @@
 from typing import Dict, List, Literal
+from viewmodels.udp_vm import UdpVM
 from viewmodels.viewmodel import Viewmodel
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, pyqtSignal, QThread
 
 class SignalHub(QObject):
     '''
     Класс для фильтрации данных от backend'ов и передачи их в UdpVM.
     '''
+    forwardSettings = pyqtSignal(str, dict)
     forwardModMessage = pyqtSignal(str, dict)
+    forwardTempChart = pyqtSignal(str, list)
+    forwardPressChart = pyqtSignal(str, list)
+    forwardTempHistory = pyqtSignal(str, dict)
+    forwardPressHistory = pyqtSignal(str, dict)
+
     def __init__(self, vm: Viewmodel):
         super().__init__()
         self.vm = vm.udp
         self.current_system = 'system_1'
+        self.forwardSettings.connect(self.vm.update_mod_params)
         self.forwardModMessage.connect(self.vm.update_mod_params)
+        self.forwardTempChart.connect(self.vm.update_temp_chart)
+        self.forwardPressChart.connect(self.vm.update_press_chart)
+        self.forwardTempHistory.connect(self.vm.update_temp_history)
+        self.forwardPressHistory.connect(self.vm.update_press_history)
 
-    def forward_to_vm(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4'], slot: Literal['front', 'back'], data: Dict):
+    def forward_settings(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4'], slot: Literal['front', 'back'], settings):
+        if system == self.current_system:
+            pass
+
+    def forward_to_vm(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4'], slot: Literal['front', 'back'], data: dict):
         if system == self.current_system:
             self.forwardModMessage.emit(slot, data)
+
+    def forward_temp_chart(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4'], slot: Literal['front', 'back'], data: List):
+        if system == self.current_system:
+            self.forwardTempChart.emit(slot, data)
+
+    def forward_press_chart(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4'], slot: Literal['front', 'back'], data: list):
+        if system == self.current_system:
+            self.forwardPressChart.emit(slot, data)
+
+    def forward_history(self, system, slot, temp_list: Dict[str, list], press_list: Dict[str, list]):
+        '''
+        Функция для вычисления среднего значения показателей истории за 30 секунд и передачи их в GUI.
+        Нужна для того, чтобы не перегружать основной поток отрисовкой графиков при загрузке истории.
+        '''
+        if system == self.current_system:
+            temp = {'air' : [], 'water' : [], 'out' : [], 'wp' : []}
+            press = {'water' : [], 'air' : []}
+            air_temp_avg = []
+            water_temp_avg = []
+            out_temp_avg = []
+            wp_temp_avg = []
+            water_press_avg = []
+            air_press_avg = []
+            for i in range(len(temp_list['air'])):
+                air_temp_avg.append(temp_list['air'][i])
+                water_temp_avg.append(temp_list['water'][i])
+                out_temp_avg.append(temp_list['out'][i])
+                wp_temp_avg.append(temp_list['wp'][i])
+                water_press_avg.append(press_list['water'][i])
+                air_press_avg.append(press_list['air'][i])
+
+                if i % 3 == 0:
+                    air_temp = sum(air_temp_avg) / len(air_temp_avg)
+                    water_temp = sum(water_temp_avg) / len(water_temp_avg)
+                    out_temp = sum(out_temp_avg) / len(out_temp_avg)
+                    wp_temp = sum(wp_temp_avg) / len(wp_temp_avg)
+                    water_press = sum(water_press_avg) / len(water_press_avg)
+                    air_press = sum(air_press_avg) / len(air_press_avg)
+                    temp['air'].append({'x': i, 'y': air_temp})
+                    temp['water'].append({'x': i, 'y': water_temp})
+                    temp['out'].append({'x': i, 'y': out_temp})
+                    temp['wp'].append({'x': i, 'y': wp_temp})
+                    press['water'].append({'x': i, 'y': water_press})
+                    press['air'].append({'x': i, 'y': air_press})
+                    air_temp_avg = []
+                    water_temp_avg = []
+                    out_temp_avg = []
+                    wp_temp_avg = []
+                    water_press_avg = []
+                    air_press_avg = []
+            self.forwardTempHistory.emit(slot, temp)
+            self.forwardPressHistory.emit(slot, press)

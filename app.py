@@ -37,22 +37,26 @@ def create_app(app):
     udp_back = UdpController(config, logger, sender, 'system_1', 'back')
     viewmodel = Viewmodel(onvif_front, onvif_back, dvrip_front, dvrip_back, udp_front, udp_back)
     hub = SignalHub(viewmodel)
-    systems_controller = SystemsController(config, logger, hub)
+    controller = SystemsController(config, logger, hub)
     globals()["viewmodel"] = viewmodel
+    globals()["controller"] = controller
 
     engine = QQmlApplicationEngine()
     image_provider = CameraImageProvider()
     engine.addImageProvider("camera", image_provider)
 
-    global streams
-    streams.append(VideoStream("rtsp://admin:@192.168.1.101:554/ch1/main/av_stream", image_provider, "front"))
-    streams.append(VideoStream("rtsp://admin:@192.168.1.101:554/ch1/main/av_stream", image_provider, "back"))
+    #global streams
+    #streams.append(VideoStream("", image_provider, "front"))
+    #streams.append(VideoStream("rtsp://admin:@192.168.1.101:554/ch1/main/av_stream", image_provider, "front"))
+    #streams.append(VideoStream("rtsp://admin:@192.168.1.101:554/ch1/main/av_stream", image_provider, "back"))
+    #streams.append(VideoStream("", image_provider, "back"))
 
     context = engine.rootContext()
 
     engine.rootContext().setContextProperty("viewmodel", viewmodel)
-    context.setContextProperty("stream_front", streams[0])
-    context.setContextProperty("stream_back", streams[1])
+    engine.rootContext().setContextProperty("controller", controller)
+    #context.setContextProperty("stream_front", streams[0])
+    #context.setContextProperty("stream_back", streams[1])
 
     engine.load(QUrl("design/App.qml"))
     if not engine.rootObjects():
@@ -60,8 +64,8 @@ def create_app(app):
     window = engine.rootObjects()[0]
     screen_geometry = app.primaryScreen().availableGeometry()
     app.setWindowIcon(QIcon("design/images/icoo.ico"))
-    streams[0].start()
-    streams[1].start()
+    #streams[0].start()
+    #streams[1].start()
 
     max_height = 1080
     width = 1920

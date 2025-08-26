@@ -1,7 +1,7 @@
 from controls.udp_controller import UdpController
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty, QVariant
 from models import Command
-from typing import Dict, List, Literal
+from typing import Dict, List, Literal, Union
 from collections import deque
 
 
@@ -15,30 +15,57 @@ class UdpVM(QObject):
     '''
 
     frontBrightnessChanged = pyqtSignal()
+    frontSettingsChanged = pyqtSignal()
     frontStateChanged = pyqtSignal()
     frontLogsChanged = pyqtSignal()
     frontAngleChanged = pyqtSignal()
+    frontTempsChanged = pyqtSignal()
+    frontPressChanged = pyqtSignal()
+    frontTempChartChanged = pyqtSignal()
+    frontPressChartChanged = pyqtSignal()
 
+    frontTempHistoryAdded = pyqtSignal()
+    frontPressHistoryAdded = pyqtSignal()
+
+    backSettingsChanged = pyqtSignal()
     backBrightnessChanged = pyqtSignal()
     backStateChanged = pyqtSignal()
     backLogsChanged = pyqtSignal()
     backAngleChanged = pyqtSignal()
+    backTempsChanged = pyqtSignal()
+    backPressChanged = pyqtSignal()
+    backTempChartChanged = pyqtSignal()
+    backPressChartChanged = pyqtSignal()
+
+    backTempHistoryAdded = pyqtSignal()
+    backPressHistoryAdded = pyqtSignal()
 
     def __init__(self, front: UdpController, back: UdpController):
         super().__init__()
         self.front = front
         self.back = back
 
+        self._front_settings = {}
         self._front_state = -1
         self._front_angle = 0
         self._front_logs = deque()
+        self._front_temps = [0.0, 0.0, 0.0, 0.0]
+        self._front_press = [0.0, 0.0]
+        self._front_temp_chart = []
+        self._front_press_chart = []
+        self._front_temp_history = []
+        self._front_press_history = []
 
+        self._back_settings = {}
         self._back_state = -1
-        self._back_logs = deque()
         self._back_angle = 0
-
-        self.front.udpChangeNotification.connect(self.update_params_from_controller)
-        self.back.udpChangeNotification.connect(self.update_params_from_controller)
+        self._back_logs = deque()
+        self._back_temps = [0.0, 0.0, 0.0, 0.0]
+        self._back_press = [0.0, 0.0]
+        self._back_temp_chart = []
+        self._back_press_chart = []
+        self._back_temp_history = []
+        self._back_press_history = []
 
     @pyqtSlot()
     def send_params_to_gui(self):
@@ -46,6 +73,15 @@ class UdpVM(QObject):
         self.frontStateChanged.emit()
 
     # -----------
+    @pyqtProperty(int, notify=frontSettingsChanged)
+    def frontSettings(self):
+        return self._front_settings
+
+    @frontSettings.setter
+    def frontSettings(self, value: int):
+        self._front_settings = value
+        self.frontSettingsChanged.emit()
+
     @pyqtProperty(int, notify=frontStateChanged)
     def frontState(self):
         return self._front_state
@@ -76,6 +112,67 @@ class UdpVM(QObject):
         if self._front_angle != value:
             self._front_angle = value
             self.frontAngleChanged.emit()
+
+    @pyqtProperty(QVariant, notify=frontTempsChanged)
+    def frontTemps(self):
+        return self._front_temps
+
+    @frontTemps.setter
+    def frontTemps(self, value):
+        #if self._front_temps != value:
+        self._front_temps = value
+        self.frontTempsChanged.emit()
+
+    @pyqtProperty(QVariant, notify=frontPressChanged)
+    def frontPress(self):
+        return self._front_press
+
+    @frontPress.setter
+    def frontPress(self, value):
+        if self._front_press != value:
+            self._front_press = value
+            self.frontPressChanged.emit()
+
+    @pyqtProperty(list, notify=frontTempChartChanged)
+    def frontTempChart(self):
+        return self._front_temp_chart
+
+    @frontTempChart.setter
+    def frontTempChart(self, value):
+        self._front_temp_chart = value
+        self.frontTempChartChanged.emit()
+
+    @pyqtProperty(list, notify=frontPressChartChanged)
+    def frontPressChart(self):
+        return self._front_press_chart
+
+    @frontPressChart.setter
+    def frontPressChart(self, value):
+        self._front_press_chart = value
+        self.frontPressChartChanged.emit()
+        
+        ###
+
+    @pyqtProperty(QVariant, notify=frontTempHistoryAdded)
+    def frontTempHistory(self):
+        return self._front_temp_history
+
+    @frontTempHistory.setter
+    def frontTempHistory(self, value):
+        self._front_temp_history = value
+        self.frontTempHistoryAdded.emit()
+
+    @pyqtProperty(QVariant, notify=frontPressHistoryAdded)
+    def frontPressHistory(self):
+        return self._front_press_history
+
+    @frontPressHistory.setter
+    def frontPressHistory(self, value):
+        self._front_press_history = value
+        self.frontPressHistoryAdded.emit()
+        
+
+        ###
 
     @pyqtProperty(QVariant, notify=frontBrightnessChanged)
     def frontBrightness(self):
@@ -119,6 +216,63 @@ class UdpVM(QObject):
             self._back_angle = value
             self.backAngleChanged.emit()
 
+    @pyqtProperty(QVariant, notify=backTempsChanged)
+    def backTemps(self):
+        return self._back_temps
+
+    @backTemps.setter
+    def backTemps(self, value):
+        if self._back_temps != value:
+            self._back_temps = value
+            self.backTempsChanged.emit()
+
+    @pyqtProperty(QVariant, notify=backPressChanged)
+    def backPress(self):
+        return self._back_press
+
+    @backPress.setter
+    def backPress(self, value):
+        if self._back_press != value:
+            self._back_press = value
+            self.backPressChanged.emit()
+
+    @pyqtProperty(QVariant, notify=backTempChartChanged)
+    def backTempChart(self):
+        return self._back_temp_chart
+
+    @backTempChart.setter
+    def backTempChart(self, value):
+        self._back_temp_chart = value
+        self.backTempChartChanged.emit()
+            
+    @pyqtProperty(list, notify=backPressChartChanged)
+    def backPressChart(self):
+        return self._back_press_chart
+
+    @backPressChart.setter
+    def backPressChart(self, value):
+        self._back_press_chart = value
+        self.backPressChartChanged.emit()
+
+        ###
+    @pyqtProperty(QVariant, notify=backTempHistoryAdded)
+    def backTempHistory(self):
+        return self._back_temp_history
+
+    @backTempHistory.setter
+    def backTempHistory(self, value):
+        self._back_temp_history = value
+        self.backTempHistoryAdded.emit()
+            
+    @pyqtProperty(QVariant, notify=backPressHistoryAdded)
+    def backPressHistory(self):
+        return self._back_press_history
+
+    @backPressHistory.setter
+    def backPressHistory(self, value):
+        self._back_press_history = value
+        self.backPressHistoryAdded.emit()
+        ###
     @pyqtProperty(QVariant, notify=backBrightnessChanged)
     def backBrightness(self):
         return self._back_brightness
@@ -167,22 +321,58 @@ class UdpVM(QObject):
         elif slot == 'back':
             self.back.add_command(cmd)
 
-    @pyqtSlot(str)
-    def update_params_from_controller(self, slot: Literal['front', 'back']):
-        if slot == 'front':
-            wp, ap, at, wt, ot, wpt = self.front.get_current_params()
-            self.frontBrightness = wp
-        else:
-            wp, ap, at, wt, ot, wpt = self.back.get_current_params()
-            self.backBrightness = wp
-
     @pyqtSlot(str, dict)
     def update_mod_params(self, slot: Literal['front', 'back'], data: Dict):
         if slot == 'front':
             self.frontState = data['status']
             self.frontLogs = data['logs']
             self.frontAngle = data['angle']
+            self.frontTemps = data['temps']
+            self.frontPress = data['pressures']
         else:
             self.backState = data['status']
             self.backLogs = data['logs']
             self.backAngle = data['angle']
+            self.backTemps = data['temps']
+            self.backPress = data['pressures']
+
+
+    @pyqtSlot(str, list)
+    def update_temp_chart(self, slot: Literal['front', 'back'], data: list):
+        if slot == 'front':
+            self.frontTempChart = data
+        else:
+            self.backTempChart = data
+        
+
+    @pyqtSlot(str, list)
+    def update_press_chart(self, slot: Literal['front', 'back'], data: list):
+        if slot == 'front':
+            self.frontPressChart = data
+        else:
+            self.backPressChart = data
+
+
+
+
+    @pyqtSlot(str, dict)
+    def update_temp_history(self, slot: Literal['front', 'back'], data: Dict[str, list]):
+        if slot == 'front':
+            self.frontTempHistory = data
+        else:
+            self.backTempHistory = data
+        
+
+    @pyqtSlot(str, dict)
+    def update_press_history(self, slot: Literal['front', 'back'], data: Dict[str, list]):
+        if slot == 'front':
+            self.frontPressHistory = data
+        else:
+            self.backPressHistory = data
+
+    @pyqtSlot(str, dict)
+    def update_settings(self, slot: Literal['front', 'back'], data: Dict[str, Union[float, str]]):
+        if slot == 'front':
+            self.frontSettings = data
+        else:
+            self.backSettings = data

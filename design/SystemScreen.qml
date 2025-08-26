@@ -9,6 +9,7 @@ Item {
 
     Component.onCompleted: {
         viewmodel.onGuiReady()
+        controller.onGuiIsReady()
     }
 
     Rectangle {

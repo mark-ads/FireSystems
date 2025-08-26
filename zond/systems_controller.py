@@ -39,7 +39,9 @@ class SystemFactory:
 
 class SystemsController(QObject):
 
-    firstSignal = pyqtSignal()
+    guiIsReady = pyqtSignal()
+    addNumsLeft = pyqtSignal()
+    addNumsRight = pyqtSignal()
 
     def __init__(self, config: Config, logger: MultiLogger, hub: SignalHub):
         super().__init__()
@@ -54,7 +56,13 @@ class SystemsController(QObject):
         for name in self.systems:  # создание атрибутов по ключам для облегченного доступа
             system = self.systems[name]
             setattr(self, name, system)
-        
+            self.guiIsReady.connect(self.systems[name].front.init_after_gui)
+            self.guiIsReady.connect(self.systems[name].back.init_after_gui)
+            self.addNumsLeft.connect(self.systems[name].front.send_test_left)
+            self.addNumsLeft.connect(self.systems[name].back.send_test_left)
+            self.addNumsRight.connect(self.systems[name].front.send_test_right)
+            self.addNumsRight.connect(self.systems[name].back.send_test_right)
+
         self.receiver = Receiver(self.config, logger, self.create_ip_map())
         self.receiver.start_receiving()
 
@@ -64,6 +72,19 @@ class SystemsController(QObject):
             ip_map[system.front.ip] = (system.front, system_id, system.front.slot)
             ip_map[system.back.ip] = (system.back, system_id, system.back.slot)
         return ip_map
+
+    @pyqtSlot()
+    def onGuiReady(self):
+        self.guiIsReady.emit()
+
+    @pyqtSlot()
+    def onSendChartsLeft(self):
+        self.addNumsLeft.emit()
+
+
+    @pyqtSlot()
+    def onSendChartsRight(self):
+        self.addNumsRight.emit()
 
 
 

@@ -165,7 +165,7 @@ class Config(QObject):
     def set(self, sys_key: str, *path: str, value: Union[int, float, bool]):
         '''
         Устанавливает новое значение по указанному пути и сохраняет конфиг.
-        (hint: system_id, slot, device, field, value)
+        (hint: field)
         '''
         self._lock.lockForWrite()
         try:
