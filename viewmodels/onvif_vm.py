@@ -12,9 +12,12 @@ class OnvifVM(QObject):
     Содержит в себе 2 ONVIF контроллера.
     '''
 
+    frontIpChanged = pyqtSignal()
     frontBrightnessChanged = pyqtSignal()
     frontContrastChanged = pyqtSignal()
     frontSaturationChanged = pyqtSignal()
+
+    backIpChanged = pyqtSignal()
     backBrightnessChanged = pyqtSignal()
     backContrastChanged = pyqtSignal()
     backSaturationChanged = pyqtSignal()
@@ -24,9 +27,12 @@ class OnvifVM(QObject):
         self.front = front
         self.back = back
 
+        self._front_ip = None
         self._front_brightness = None
         self._front_contrast = None
         self._front_saturation = None
+
+        self._back_ip = None
         self._back_brightness = None
         self._back_contrast = None
         self._back_saturation = None
@@ -47,6 +53,15 @@ class OnvifVM(QObject):
         self.back.commands.put(cmd_back)
 
     # -----------
+    @pyqtProperty(str, notify=frontIpChanged)
+    def frontIp(self):
+        return self._front_ip
+
+    @frontIp.setter
+    def frontIp(self, value):
+        self._front_ip = value
+        self.frontIpChanged.emit()
+
     @pyqtProperty(QVariant, notify=frontBrightnessChanged)
     def frontBrightness(self):
         return self._front_brightness
@@ -77,6 +92,16 @@ class OnvifVM(QObject):
             self._front_saturation = value
             self.frontSaturationChanged.emit()
     # -----------
+    @pyqtProperty(str, notify=backIpChanged)
+    def backIp(self):
+        return self._back_ip
+
+    @backIp.setter
+    def backIp(self, value):
+        if self._back_ip != value:
+            self._back_ip = value
+            self.backIpChanged.emit()
+
     @pyqtProperty(QVariant, notify=backBrightnessChanged)
     def backBrightness(self):
         return self._back_brightness
@@ -146,6 +171,20 @@ class OnvifVM(QObject):
             self.back.add_command(cmd)
         self._start_feedback_timer(slot)
 
+    @pyqtSlot(str, str, str)
+    def forward_str_command(self, slot: Literal['front', 'back'], command: str, value: str):
+        cmd = Command(
+            target=slot,
+            command=command,
+            value=value
+            )
+        if slot == 'front':
+            self.front.add_command(cmd)
+
+        elif slot == 'back':
+            self.back.add_command(cmd)
+        self._start_feedback_timer(slot)
+
     def _start_feedback_timer(self, slot: str):
         if slot == 'front':
             self.feedback_timer_front.stop()
@@ -165,12 +204,14 @@ class OnvifVM(QObject):
     @pyqtSlot(str)
     def update_current_params(self, slot: Literal['front', 'back']):
         if slot == 'front':
-            b, c, s = self.front.get_current_params()
+            ip, b, c, s = self.front.get_current_params()
+            self.frontIp = ip
             self.frontBrightness = b
             self.frontContrast = c
             self.frontSaturation = s
         else:
-            b, c, s = self.back.get_current_params()
+            ip, b, c, s = self.back.get_current_params()
+            self.backIp = ip
             self.backBrightness = b
             self.backContrast = c
             self.backSaturation = s

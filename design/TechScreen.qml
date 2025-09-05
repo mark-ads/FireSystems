@@ -57,7 +57,7 @@ Item {
                 legend.visible: false
                 property var tempList: viewmodel.udp.frontTempChart
                 property var tempHistory: viewmodel.udp.frontTempHistory
-                property var frontTempLoadId: 0
+                property int frontTempLoadId: 0
                 property int index: 0
 
                 ValueAxis {
@@ -83,7 +83,7 @@ Item {
                     titleFont.bold: true
                 }
 
-                SplineSeries {
+                LineSeries {
                     id: frontTempAirChart
                     name: "Воздух"
                     axisX: frontTempTimeAxis
@@ -92,7 +92,7 @@ Item {
                     width: 3
                 }
 
-                SplineSeries {
+                LineSeries {
                     id: frontTempWaterChart
                     name: "Вода"
                     axisX: frontTempTimeAxis
@@ -100,7 +100,7 @@ Item {
                     color: "light blue"
                     width: 3
                 }
-                SplineSeries {
+                LineSeries {
                     id: frontTempOutChart
                     name: "Сброс"
                     axisX: frontTempTimeAxis
@@ -108,7 +108,7 @@ Item {
                     color: "pink"
                     width: 3
                 }
-                SplineSeries {
+                LineSeries {
                     id: frontTempCameraChart
                     name: "Камера"
                     axisX: frontTempTimeAxis
@@ -368,7 +368,7 @@ Item {
                     tickCount: 11
                 }
 
-                SplineSeries {
+                LineSeries {
                     id: frontPressAirChart
                     name: "Воздух"
                     width: 3
@@ -377,7 +377,7 @@ Item {
                     axisX: frontPressTimeAxis
                 }
 
-                SplineSeries {
+                LineSeries {
                     id: frontPressWaterChart
                     name: "Вода"
                     width: 3
@@ -1034,7 +1034,7 @@ Item {
                     labelFormat: "%.1f"
                 }
 
-                SplineSeries {
+                LineSeries {
                     id: backTempAirChart
                     name: "Воздух"
                     width: 3
@@ -1043,7 +1043,7 @@ Item {
                     axisX: backTempTimeAxis
                 }
 
-                SplineSeries {
+                LineSeries {
                     id: backTempWaterChart
                     name: "Вода"
                     width: 3
@@ -1052,7 +1052,7 @@ Item {
                     axisX: backTempTimeAxis
                 }
 
-                SplineSeries {
+                LineSeries {
                     id: backTempOutChart
                     name: "Сброс"
                     width: 3
@@ -1061,7 +1061,7 @@ Item {
                     axisX: backTempTimeAxis
                 }
 
-                SplineSeries {
+                LineSeries {
                     id: backTempCameraChart
                     name: "Камера"
                     width: 3
@@ -1318,7 +1318,7 @@ Item {
                     tickCount: 11
                 }
 
-                SplineSeries {
+                LineSeries {
                     id: backPressAirChart
                     name: "Воздух"
                     width: 3
@@ -1327,7 +1327,7 @@ Item {
                     axisX: backPressTimeAxis
                 }
 
-                SplineSeries {
+                LineSeries {
                     id: backPressWaterChart
                     name: "Вода"
                     width: 3
@@ -1915,7 +1915,7 @@ Item {
                     id: button1
                     x: -31
                     y: -40
-                    onClicked: controller.onSendChartsRight()
+                    onClicked: controller.sendHistory()
                 }
             }
         }

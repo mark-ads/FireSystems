@@ -1,11 +1,11 @@
-from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal
+from queue import Queue
+from PyQt5.QtCore import QObject, Qt, pyqtSlot, pyqtSignal, QThread
 from config import Config
 from logs import MultiLogger
+from models import Telemetry
 from signal_hub import SignalHub
-from viewmodels.viewmodel import Viewmodel
 from .backend import Backend
 from .receiver import Receiver
-import time
 
 class ZondSystem(QObject):
     def __init__(self, config: Config, logger: MultiLogger, hub: SignalHub, system_id: str):
@@ -21,7 +21,7 @@ class ZondSystem(QObject):
 class SystemFactory:
     '''
     Класс для создания систем.
-    Создаёт системы (пара верх + низ для зонд + камера).
+    Создаёт системы (front и back для контролллеров ардуино).
     Принимает конфиг и из него создает необходимое количество систем (столько, сколько в settings.yaml).
     '''
 
@@ -37,55 +37,65 @@ class SystemFactory:
             return ZondSystem(self.config, self.logger, self.hub, system_id)
 
 
-class SystemsController(QObject):
-
+class SystemsController(QThread):
+    '''
+    Поток для работы всех бекендов для каждого ардуино в настройках.
+    Так же содержит Reciever для приема пакетов от ардуино.
+    '''
     guiIsReady = pyqtSignal()
-    addNumsLeft = pyqtSignal()
-    addNumsRight = pyqtSignal()
+    sendHistory = pyqtSignal()
 
     def __init__(self, config: Config, logger: MultiLogger, hub: SignalHub):
         super().__init__()
         self.config = config
         self.factory = SystemFactory(self.config, logger, hub)
+        self.telemetry_queue = Queue()
+        self.logger = logger.get_logger('systems_controller')
+        self._running = True
 
         self.systems = {
             name: self.factory.create_system(name)
             for name in self.config.systems
             }
-        
+        self.receiver = Receiver(self.config, logger)
+        self.receiver.forwardTelemetry.connect(self._forward_to_backend)
+
         for name in self.systems:  # создание атрибутов по ключам для облегченного доступа
             system = self.systems[name]
             setattr(self, name, system)
-            self.guiIsReady.connect(self.systems[name].front.init_after_gui)
-            self.guiIsReady.connect(self.systems[name].back.init_after_gui)
-            self.addNumsLeft.connect(self.systems[name].front.send_test_left)
-            self.addNumsLeft.connect(self.systems[name].back.send_test_left)
-            self.addNumsRight.connect(self.systems[name].front.send_test_right)
-            self.addNumsRight.connect(self.systems[name].back.send_test_right)
+            self.guiIsReady.connect(self.systems[name].front.init_on_gui)
+            self.guiIsReady.connect(self.systems[name].back.init_on_gui)
+            self.systems[name].front.updateSettings.connect(self.receiver.update_settings)
+            self.sendHistory.connect(self.systems[name].front.send_history)
+            self.sendHistory.connect(self.systems[name].back.send_history)
+            self.systems[name].back.updateSettings.connect(self.receiver.update_settings)
 
-        self.receiver = Receiver(self.config, logger, self.create_ip_map())
-        self.receiver.start_receiving()
+        self.start()
 
-    def create_ip_map(self):
-        ip_map = {}
-        for system_id, system in self.systems.items():
-            ip_map[system.front.ip] = (system.front, system_id, system.front.slot)
-            ip_map[system.back.ip] = (system.back, system_id, system.back.slot)
-        return ip_map
+    def _forward_to_backend(self, tel: Telemetry):
+        try:
+            system = getattr(self, tel.system, None)
+            backend = getattr(system, tel.slot, None)
+            if backend:
+                backend.handle_arduino_message(tel.data)
+        except Exception as e:
+            self.logger.add_log('ERROR', f'Ошибка в _forward_to_backend: {e}')
 
     @pyqtSlot()
     def onGuiReady(self):
         self.guiIsReady.emit()
 
     @pyqtSlot()
-    def onSendChartsLeft(self):
-        self.addNumsLeft.emit()
+    def update_settings(self):
+        self.receiver.update_settings()
 
+    def run(self):
+        self.exec_()
 
-    @pyqtSlot()
-    def onSendChartsRight(self):
-        self.addNumsRight.emit()
-
+    def stop(self):
+        self._running = False
+        self.quit()
+        self.wait()
 
 
 

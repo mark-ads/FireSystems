@@ -1,13 +1,11 @@
 from typing import Dict, List, Literal
-from viewmodels.udp_vm import UdpVM
 from viewmodels.viewmodel import Viewmodel
-from PyQt5.QtCore import QObject, pyqtSignal, QThread
+from PyQt5.QtCore import QObject, Qt, pyqtSignal, QThread
 
 class SignalHub(QObject):
     '''
     Класс для фильтрации данных от backend'ов и передачи их в UdpVM.
     '''
-    forwardSettings = pyqtSignal(str, dict)
     forwardModMessage = pyqtSignal(str, dict)
     forwardTempChart = pyqtSignal(str, list)
     forwardPressChart = pyqtSignal(str, list)
@@ -18,16 +16,11 @@ class SignalHub(QObject):
         super().__init__()
         self.vm = vm.udp
         self.current_system = 'system_1'
-        self.forwardSettings.connect(self.vm.update_mod_params)
-        self.forwardModMessage.connect(self.vm.update_mod_params)
-        self.forwardTempChart.connect(self.vm.update_temp_chart)
-        self.forwardPressChart.connect(self.vm.update_press_chart)
-        self.forwardTempHistory.connect(self.vm.update_temp_history)
-        self.forwardPressHistory.connect(self.vm.update_press_history)
-
-    def forward_settings(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4'], slot: Literal['front', 'back'], settings):
-        if system == self.current_system:
-            pass
+        self.forwardModMessage.connect(self.vm.update_mod_params, Qt.QueuedConnection)
+        self.forwardTempChart.connect(self.vm.update_temp_chart, Qt.QueuedConnection)
+        self.forwardPressChart.connect(self.vm.update_press_chart, Qt.QueuedConnection)
+        self.forwardTempHistory.connect(self.vm.update_temp_history, Qt.QueuedConnection)
+        self.forwardPressHistory.connect(self.vm.update_press_history, Qt.QueuedConnection)
 
     def forward_to_vm(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4'], slot: Literal['front', 'back'], data: dict):
         if system == self.current_system:

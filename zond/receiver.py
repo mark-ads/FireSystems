@@ -1,93 +1,74 @@
 import socket
-from PyQt5.QtCore import QThread, pyqtSlot
+from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot
+from PyQt5.QtNetwork import QUdpSocket, QHostAddress
 from config import Config
 from logs import MultiLogger
+from models import Telemetry
 from .backend import Backend
 from typing import Dict, Literal, Tuple, TypedDict
 
 IpMapType = Dict[str, Tuple[Backend, str, Literal['front', 'back']]]
 
-class Receiver(QThread):
+class Receiver(QObject):
     '''
     Класс приёмника UDP-строк от контроллеров Arduino.
 
     Принимает пакеты от устройств с заданными IP.
     различает отправителей,
-    передаёт строки в зависимости от адреса отправителя,
-    запускается в отдельном потоке.
+    передаёт строки в зависимости от адреса отправителя.
     '''
+    forwardTelemetry = pyqtSignal(Telemetry)
 
-    def __init__(self, config: Config, logger: MultiLogger,ip_map: IpMapType):
+    def __init__(self, config: Config, logger: MultiLogger):
         super().__init__()
         self.logger = logger.get_logger('reciever')
-        if not isinstance(ip_map, dict):
-            raise TypeError("Receiver: ip_map должен быть словарём")
-        for ip, value in ip_map.items():
-            if not isinstance(ip, str):
-                self.logger.add_log('ERROR', f'ip_map содержит нестроковый ключ: {ip}')
-            if not isinstance(value[0], Backend):
-                self.logger.add_log('ERROR', f'Первый элемент кортежа должен быть объект Backend')
-            if not (isinstance(value, tuple) and len(value) == 3):
-                self.logger.add_log('ERROR', f'ip_map[{ip}] должен быть кортежем из 3 элементов')
-
         self.config = config
-        self.ip_map = ip_map
-        self.sys_ip = self.config.get_sys_settings('ip')
-        self.port = 80
-        self.running = False
+        self.socket = None
+        self.update_settings()
 
-    def run(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        try:
-            sock.bind((self.sys_ip, self.port))
-            self.logger.add_log('INFO', f'Слушаем UDP на {self.sys_ip}:{self.port}')
-        except Exception as e:
-            self.logger.add_log('ERROR', f'❌ Ошибка bind: {e}')
-            return #  подумать над тем, что делать если айпи не совпадет с системным
+    def _bind_socket(self):
+        if self.socket:
+            self.socket.close()
+            self.socket.deleteLater()
+        self.socket = QUdpSocket(self)
+        if not self.socket.bind(QHostAddress(self.sys_ip), 80):
+            self.logger.add_log('ERROR', f"❌ Ошибка bind {self.sys_ip}:80")
+        else:
+            self.logger.add_log('INFO', f"✅ Слушаем {self.sys_ip}:80")
+            self.socket.readyRead.connect(self._on_ready_read)
 
-        while self.running:
-            try:
-                data, addr = sock.recvfrom(1024)
-                data = data.decode()
-                sender_ip = addr[0]
-                if sender_ip in self.ip_map:
-                    #self.logger.add_log('DEBUG', f'Принят пакет контроллера: {sender_ip}')
-                    self.ip_map[sender_ip][0].handle_arduino_message(data)
-                else:
-                    self.logger.add_log('WARN', f'Принят НЕИЗВЕСТНЫЙ отправитель. {sender_ip}')
-            except Exception as e:
-                self.logger.add_log('ERROR', f'❌ Ошибка при приёме пакета: {e}')
 
-    def start_receiving(self):
-        self.running = True
-        self.start()
-
-    def stop_receiving(self):
-        self.running = False
-        self.wait()
-
-    def rebuild_ip_map(self):
-        '''Функция пересоздания карты айпи при смене настроек'''
-        new_ip_map: IpMapType = {}
-        for old_ip, (backend, system_id, slot) in self.ip_map.items():
-            try:
-                ip = self.config.get_str(system_id, slot, 'arduino', 'ip')
-            except KeyError as e:
-                self.logger.add_log('WARN', f'⚠️ Ошибка получения IP из настроек для {system_id}.{slot}: {e}')
-                continue
-
-            new_ip_map[ip] = (backend, system_id, slot)
-            self.logger.add_log('INFO', f'🔁 Обновлён IP: {system_id}.{slot} = {ip}')
-
-        self.ip_map = new_ip_map
+    def _on_ready_read(self):
+        while self.socket.hasPendingDatagrams():
+            datagram, host, port = self.socket.readDatagram(self.socket.pendingDatagramSize())
+            data = datagram.decode("utf-8", errors="ignore")
+            sender_ip = host.toString()
+            #print(f"📩 Пришло от {sender_ip}:{port} → {data}")
+        
+            if sender_ip in self.ip_map:
+                #self.logger.add_log('DEBUG', f'Принят пакет контроллера: {sender_ip}')
+                system_id, slot = self.ip_map[sender_ip]
+                tel = Telemetry(system_id, slot, data)
+                self.forwardTelemetry.emit(tel)
+            else:
+                self.logger.add_log('WARN', f'Принят НЕИЗВЕСТНЫЙ отправитель. {sender_ip}')
 
     def update_settings(self):
-        self.stop_receiving()
-        self.rebuild_ip_map()
         self.sys_ip = self.config.get_sys_settings('ip')
-        self.start_receiving()
+        self._rebuild_ip_map()
+        self._bind_socket()
 
 
-    @pyqtSlot()
-    def on_settings_updated(self):
-        self.update_settings()
+    def _rebuild_ip_map(self):
+        '''Функция создания карты айпи при смене настроек'''
+        new_map: IpMapType = {}
+        for system_id, zond_pair in self.config.systems.items():
+            for slot in ('front', 'back'):
+                try:
+                    ip = self.config.get_str(system_id, slot, 'arduino', 'ip')
+                    if ip:
+                        new_map[ip] = (system_id, slot)
+                        self.logger.add_log('INFO', f'🔁 IP: {system_id}.{slot} = {ip}')
+                except Exception as e:
+                    self.logger.add_log('WARN', f'⚠️ Ошибка получения IP {system_id}.{slot}: {e}')
+        self.ip_map = new_map

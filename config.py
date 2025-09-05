@@ -142,7 +142,8 @@ class Config(QObject):
             self.logger.add_log('ERROR', f'Нет системы с ключом "{sys_key}"')
 
     def get_sys_settings(self, *path: str) -> str:
-        '''Получить настроки программы'''
+        '''Получить настроки программы
+        (hint: field)'''
         try:
             node = self.settings.program_settings
             for part in path:
@@ -164,8 +165,7 @@ class Config(QObject):
 
     def set(self, sys_key: str, *path: str, value: Union[int, float, bool]):
         '''
-        Устанавливает новое значение по указанному пути и сохраняет конфиг.
-        (hint: field)
+        Устанавливает новое значение по указанному пути и сохраняет конфиг
         '''
         self._lock.lockForWrite()
         try:
@@ -175,5 +175,22 @@ class Config(QObject):
             setattr(node, path[-1], value)
             self._save_unlocked()
             self.logger.add_log('DEBUG', f'Изменения сохранены: {node}{path[-1]} = {value}')
+        finally:
+            self._lock.unlock()
+
+    def set_sys(self, param: str, value: Union[int, float, bool, str]):
+        '''
+        Устанавливает новое значение для системных настроек
+        '''
+        self._lock.lockForWrite()
+        try:
+            if hasattr(self.settings.program_settings, param):
+                setattr(self.settings.program_settings, param, value)
+                self._save_unlocked()
+                if self.logger:
+                    self.logger.add_log('DEBUG', f'Изменения сохранены: program_settings.{param} = {value}')
+            else:
+                if self.logger:
+                    self.logger.add_log('ERROR', f'Нет параметра "{param}" в program_settings')
         finally:
             self._lock.unlock()

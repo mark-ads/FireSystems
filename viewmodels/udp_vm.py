@@ -1,7 +1,7 @@
 from controls.udp_controller import UdpController
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty, QVariant
 from models import Command
-from typing import Dict, List, Literal, Union
+from typing import Dict, Literal
 from collections import deque
 
 
@@ -27,8 +27,8 @@ class UdpVM(QObject):
     frontTempHistoryAdded = pyqtSignal()
     frontPressHistoryAdded = pyqtSignal()
 
-    backSettingsChanged = pyqtSignal()
     backBrightnessChanged = pyqtSignal()
+    backSettingsChanged = pyqtSignal()
     backStateChanged = pyqtSignal()
     backLogsChanged = pyqtSignal()
     backAngleChanged = pyqtSignal()
@@ -44,6 +44,9 @@ class UdpVM(QObject):
         super().__init__()
         self.front = front
         self.back = back
+
+        self.front.udpChangeNotification.connect(self.update_settings)
+        self.back.udpChangeNotification.connect(self.update_settings)
 
         self._front_settings = {}
         self._front_state = -1
@@ -70,15 +73,17 @@ class UdpVM(QObject):
     @pyqtSlot()
     def send_params_to_gui(self):
         self.frontStateChanged.emit()
-        self.frontStateChanged.emit()
+        self.backStateChanged.emit()
+        self.update_settings('front')
+        self.update_settings('back')
 
     # -----------
-    @pyqtProperty(int, notify=frontSettingsChanged)
+    @pyqtProperty(QVariant, notify=frontSettingsChanged)
     def frontSettings(self):
         return self._front_settings
 
     @frontSettings.setter
-    def frontSettings(self, value: int):
+    def frontSettings(self, value: dict):
         self._front_settings = value
         self.frontSettingsChanged.emit()
 
@@ -150,8 +155,6 @@ class UdpVM(QObject):
     def frontPressChart(self, value):
         self._front_press_chart = value
         self.frontPressChartChanged.emit()
-        
-        ###
 
     @pyqtProperty(QVariant, notify=frontTempHistoryAdded)
     def frontTempHistory(self):
@@ -170,9 +173,6 @@ class UdpVM(QObject):
     def frontPressHistory(self, value):
         self._front_press_history = value
         self.frontPressHistoryAdded.emit()
-        
-
-        ###
 
     @pyqtProperty(QVariant, notify=frontBrightnessChanged)
     def frontBrightness(self):
@@ -185,6 +185,15 @@ class UdpVM(QObject):
             self.frontBrightnessChanged.emit()
 
     # -----------
+    @pyqtProperty(QVariant, notify=backSettingsChanged)
+    def backSettings(self):
+        return self._back_settings
+
+    @backSettings.setter
+    def backSettings(self, value: dict):
+        self._back_settings = value
+        self.backSettingsChanged.emit()
+
     @pyqtProperty(int, notify=backStateChanged)
     def backState(self):
         return self._back_state
@@ -321,6 +330,19 @@ class UdpVM(QObject):
         elif slot == 'back':
             self.back.add_command(cmd)
 
+    @pyqtSlot(str, str, str)
+    def forward_str_command(self, slot: Literal['front', 'back'], command: str, value: str):
+        cmd = Command(
+            target=slot,
+            command=command,
+            value=value
+            )
+        if slot == 'front':
+            self.front.add_command(cmd)
+
+        elif slot == 'back':
+            self.back.add_command(cmd)
+
     @pyqtSlot(str, dict)
     def update_mod_params(self, slot: Literal['front', 'back'], data: Dict):
         if slot == 'front':
@@ -370,9 +392,29 @@ class UdpVM(QObject):
         else:
             self.backPressHistory = data
 
-    @pyqtSlot(str, dict)
-    def update_settings(self, slot: Literal['front', 'back'], data: Dict[str, Union[float, str]]):
+    @pyqtSlot(str)
+    def update_settings(self, slot: Literal['front', 'back']):
         if slot == 'front':
-            self.frontSettings = data
+            ip, sys_ip, water_pressure, air_pressure, air_temp, water_temp, out_temp, wp_temp = self.front.get_current_params()
+            self.frontSettings = {
+                'ip': ip,
+                'sys_ip': sys_ip,
+                'water_pressure': water_pressure,
+                'air_pressure': air_pressure,
+                'air_temp': air_temp,
+                'water_temp': water_temp,
+                'out_temp': out_temp,
+                'wp_temp': wp_temp
+                }
         else:
-            self.backSettings = data
+            ip, sys_ip, water_pressure, air_pressure, air_temp, water_temp, out_temp, wp_temp = self.back.get_current_params()
+            self.backSettings = {
+                'ip': ip,
+                'sys_ip': sys_ip,
+                'water_pressure': water_pressure,
+                'air_pressure': air_pressure,
+                'air_temp': air_temp,
+                'water_temp': water_temp,
+                'out_temp': out_temp,
+                'wp_temp': wp_temp
+                }

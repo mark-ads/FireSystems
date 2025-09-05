@@ -10,7 +10,6 @@ ApplicationWindow {
     height: Math.min(Screen.height, 1080)
     visible: true
     title: "FireSystems"
-    property var systemsModel: ["Система 1", "Система 2"]
     property int currentScreen: 0
 
     StackLayout {
@@ -65,7 +64,7 @@ ApplicationWindow {
 
             Repeater {
                 id: systemRepeater
-                model: systemsModel
+                model: Object.keys(viewmodel.systemNames)
                 delegate: Rectangle {
                     width: 155
                     height: 50
@@ -76,13 +75,14 @@ ApplicationWindow {
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            console.log("Выбрана:", modelData)
+                            let systemId = modelData
+                            let systemName = viewmodel.systemNames[systemId]
                             systemMenu.close()
-                            // Выбор системы
+                            viewmodel.choose_system(systemId)
                         }
 
                         Text {
-                            text: modelData
+                            text: viewmodel.systemNames[modelData]
                             anchors.centerIn: parent
                             font.pointSize: 12
                             color: "black"
@@ -95,10 +95,9 @@ ApplicationWindow {
 
             Loader {
                 id: createSystemLoader
-                active: systemsModel.length < 4
+                active: Object.keys(viewmodel.systemNames).length < 4
                 sourceComponent: createSystemButton
             }
-
 
             Component {
                 id: createSystemButton
@@ -114,9 +113,8 @@ ApplicationWindow {
                         onClicked: {
                             console.log("Создание новой системы")
                             systemMenu.close()
-                            // Вставить вызов логики создания системы
+                            // вызов логики создания системы
                         }
-
 
                         Text {
                             text: "+\n(Создать систему)"
@@ -127,10 +125,8 @@ ApplicationWindow {
                             color: "black"
                         }
                     }
-
-
                 }
             }
         }
     }
-}
+    }

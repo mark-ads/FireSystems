@@ -68,7 +68,7 @@ class OnvifController(QThread):
             self.imaging_service = None
             self.video_sources = None
             self.video_source_token = None
-            self._send_change_notification()
+        self._send_change_notification()
 
     def _update_settings(self):
         self.ip = self.config.get_str(self.system_id, self.slot, 'camera', 'ip')
@@ -116,7 +116,6 @@ class OnvifController(QThread):
             get_req = self.imaging_service.create_type('GetImagingSettings')
             get_req.VideoSourceToken = self.video_source_token
             self.image_settings = self.imaging_service.GetImagingSettings(get_req)
-            #self.logger.add_log('DEBUG', f'Настройки подтверждены и обновлены')
             return True
         except Exception as e:
             self.logger.add_log('ERROR', f'Ошибка при отправке настроек: {e}')
@@ -135,7 +134,6 @@ class OnvifController(QThread):
                     self.contrast = value
                 elif name == 'ColorSaturation':
                     self.saturation = value
-                #current = getattr(self.image_settings, name)
                 setattr(self.image_settings, name, value)
                 result = self._send_image_settings()
                 if result:
@@ -145,6 +143,11 @@ class OnvifController(QThread):
                 raise AttributeError(f'[ONVIF].{self.slot}: настройка {name} отсутствует.')
         except Exception as e:
             self.logger.add_log('ERROR', f'Не удалось изменить параметр {name}.\n{e}')
+
+    def set_ip(self, value: str):
+        self.logger.add_log('INFO', f'command = set_ip({value})')
+        self.config.set(self.system_id, self.slot, 'camera', 'ip', value=value)
+        self.connect()
 
     def set_brightness(self, value: float):
         self._update_param('Brightness', value)
@@ -187,7 +190,7 @@ class OnvifController(QThread):
 
     def get_current_params(self):
         self.logger.add_log('INFO', f'brightness = {self.brightness}, contrast = {self.contrast}, saturation = {self.saturation}')
-        return self.brightness, self.contrast, self.saturation
+        return self.ip, self.brightness, self.contrast, self.saturation
 
     def add_command(self, cmd: Command):
         self.commands.put(cmd)

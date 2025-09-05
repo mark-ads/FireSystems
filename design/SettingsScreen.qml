@@ -6,6 +6,9 @@ Item {
 
     width: 1920
     height: 1080
+    property var dvrip: viewmodel.dvrip
+    property var onvif: viewmodel.onvif
+    property var udp: viewmodel.udp
 
     Rectangle {
         id: mainRectangle
@@ -58,6 +61,7 @@ Item {
             height: 450
             color: "#ffffff"
             border.width: 1
+            property var settings: viewmodel.udp.frontSettings
 
             Rectangle {
                 id: frontIpController
@@ -76,16 +80,44 @@ Item {
                     color: "#ffffff"
                     border.width: 1
 
-                    TextEdit {
+                    TextInput {
                         id: frontIpControllerEdit
-                        x: 0
-                        y: 0
                         width: 160
                         height: 30
-                        text: qsTr("192 . 168 . 1 . 66")
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        inputMask: "000.000.0.000"
+                        focus: false
+                        text: frontSettings.settings && frontSettings.settings["ip"] ? frontSettings.settings["ip"] : "192.168.1."
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            viewmodel.udp.forward_str_command("front", "set_arduino_ip", frontIpControllerEdit.text)
+                            controller.update_settings()
+                        }
+                    }
+                    Connections {
+                        target: viewmodel.udp
+                        function onFrontSettingsChanged() {
+                            if (!frontIpControllerEdit.focus) {
+                                frontIpControllerEdit.text = viewmodel.udp.frontSettings.ip.toString()
+                            }
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            frontIpControllerEdit.forceActiveFocus()
+                            frontIpControllerEdit.cursorPosition = frontIpControllerEdit.text.length
+                        }
                     }
                 }
 
@@ -95,7 +127,7 @@ Item {
                     y: 0
                     width: 210
                     height: 30
-                    text: qsTr("IP-адрес контроллера")
+                    text: "IP-адрес контроллера"
                     font.pixelSize: 20
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -103,40 +135,69 @@ Item {
             }
 
             Rectangle {
-                id: frontCameraController
+                id: frontCameraIp
                 x: 435
                 y: 30
                 width: 434
                 height: 30
                 color: "#ffffff"
+
                 Rectangle {
-                    id: frontCameraControllerForm
+                    id: frontCameraIpForm
                     x: 30
                     y: 0
                     width: 160
                     height: 30
                     color: "#ffffff"
                     border.width: 1
-                    TextEdit {
-                        id: frontIpControllerEdit1
-                        x: 0
-                        y: 0
+                    TextInput {
+                        id: frontCameraIpEdit
                         width: 160
                         height: 30
-                        text: qsTr("192 . 168 . 1 . 66")
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        inputMask: "000.000.0.000"
+                        focus: false
+                        text: root.onvif && root.onvif["frontIp"] ? root.onvif["frontIp"] : "192.168.1."
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            viewmodel.onvif.forward_str_command("front", "set_ip", frontCameraIpEdit.text)
+                            viewmodel.dvrip.forward_str_command("front", "set_ip", frontCameraIpEdit.text)
+                        }
+                    }
+                    Connections {
+                        target: viewmodel.onvif
+                        function onFrontIpChanged() {
+                            if (!frontCameraIpEdit.focus) {
+                                frontCameraIpEdit.text = viewmodel.onvif.frontIp.toString()
+                            }
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            frontCameraIpEdit.forceActiveFocus()
+                            frontCameraIpEdit.cursorPosition = frontCameraIpEdit.text.length
+                        }
                     }
                 }
 
                 Text {
-                    id: frontCameraControllerText
+                    id: frontCameraIpText
                     x: 220
                     y: 0
                     width: 210
                     height: 30
-                    text: qsTr("IP-адрес камеры")
+                    text: "IP-адрес камеры"
                     font.pixelSize: 20
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -164,10 +225,56 @@ Item {
                         y: 0
                         width: 90
                         height: 30
-                        text: qsTr("2.0")
+                        text: root.udp && root.udp.frontSettings["water_pressure"] ? root.udp.frontSettings["water_pressure"] : "2.0"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.NoWrap
+                        focus: false
+
+                        property real lastValue: parseFloat(text) || 10
+
+                        onTextChanged: {
+                            var clean = text
+                            clean = clean.replace(",", ".")
+                            clean = clean.replace(/[^0-9.]/g, "")
+                            var firstDot = clean.indexOf(".")
+                            if (firstDot !== -1) {
+                                var before = clean.substring(0, firstDot + 1)
+                                var after = clean.substring(firstDot + 1).replace(/\./g, "")
+                                clean = before + after
+                            }
+
+                            if (clean !== text) {
+                                text = clean
+                            }
+                        }
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            let val = parseFloat(text.trim())
+                            if (!isNaN(val)) {
+                                lastValue = val
+                                viewmodel.udp.forward_float_command("front", "set_water_pressure", val)
+                            } else {
+                                text = lastValue
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.udp
+                            function onFrontSettingsChanged() {
+                                if (!frontWaterPressLimitEdit.focus) {
+                                    frontWaterPressLimitEdit.text = viewmodel.udp.frontSettings.water_pressure.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -177,7 +284,7 @@ Item {
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Предел давления воды (кгс/см²)")
+                    text: "Предел давления воды (кгс/см²)"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -205,10 +312,56 @@ Item {
                         y: 0
                         width: 90
                         height: 30
-                        text: qsTr("2.0")
+                        text: root.udp && root.udp.frontSettings["air_pressure"] ? root.udp.frontSettings["air_pressure"] : "2.0"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.NoWrap
+                        focus: false
+
+                        property real lastValue: parseFloat(text) || 10
+
+                        onTextChanged: {
+                            var clean = text
+                            clean = clean.replace(",", ".")
+                            clean = clean.replace(/[^0-9.]/g, "")
+                            var firstDot = clean.indexOf(".")
+                            if (firstDot !== -1) {
+                                var before = clean.substring(0, firstDot + 1)
+                                var after = clean.substring(firstDot + 1).replace(/\./g, "")
+                                clean = before + after
+                            }
+
+                            if (clean !== text) {
+                                text = clean
+                            }
+                        }
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            let val = parseFloat(text.trim())
+                            if (!isNaN(val)) {
+                                lastValue = val
+                                viewmodel.udp.forward_float_command("front", "set_air_pressure", val)
+                            } else {
+                                text = lastValue
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.udp
+                            function onFrontSettingsChanged() {
+                                if (!frontAirPressLimitEdit.focus) {
+                                    frontAirPressLimitEdit.text = viewmodel.udp.frontSettings.air_pressure.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -218,7 +371,7 @@ Item {
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Предел давления воздуха (кгс/см²)")
+                    text: "Предел давления воздуха (кгс/см²)"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -246,10 +399,56 @@ Item {
                         y: 0
                         width: 90
                         height: 30
-                        text: qsTr("50.0")
+                        text: root.udp && root.udp.frontSettings["air_temp"] ? root.udp.frontSettings["air_temp"] : "60.0"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.NoWrap
+                        focus: false
+
+                        property real lastValue: parseFloat(text) || 50
+
+                        onTextChanged: {
+                            var clean = text
+                            clean = clean.replace(",", ".")
+                            clean = clean.replace(/[^0-9.]/g, "")
+                            var firstDot = clean.indexOf(".")
+                            if (firstDot !== -1) {
+                                var before = clean.substring(0, firstDot + 1)
+                                var after = clean.substring(firstDot + 1).replace(/\./g, "")
+                                clean = before + after
+                            }
+
+                            if (clean !== text) {
+                                text = clean
+                            }
+                        }
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            let val = parseFloat(text.trim())
+                            if (!isNaN(val)) {
+                                lastValue = val
+                                viewmodel.udp.forward_float_command("front", "set_air_temp", val)
+                            } else {
+                                text = lastValue
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.udp
+                            function onFrontSettingsChanged() {
+                                if (!frontAirTempLimitEdit.focus) {
+                                    frontAirTempLimitEdit.text = viewmodel.udp.frontSettings.air_temp.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -259,7 +458,7 @@ Item {
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Предел температуры воздуха (°С)")
+                    text: "Предел температуры воздуха (°С)"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -287,10 +486,56 @@ Item {
                         y: 0
                         width: 90
                         height: 30
-                        text: qsTr("50.0")
+                        text: root.udp && root.udp.frontSettings["water_temp"] ? root.udp.frontSettings["water_temp"] : "50.0"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.NoWrap
+                        focus: false
+
+                        property real lastValue: parseFloat(text) || 50
+
+                        onTextChanged: {
+                            var clean = text
+                            clean = clean.replace(",", ".")
+                            clean = clean.replace(/[^0-9.]/g, "")
+                            var firstDot = clean.indexOf(".")
+                            if (firstDot !== -1) {
+                                var before = clean.substring(0, firstDot + 1)
+                                var after = clean.substring(firstDot + 1).replace(/\./g, "")
+                                clean = before + after
+                            }
+
+                            if (clean !== text) {
+                                text = clean
+                            }
+                        }
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            let val = parseFloat(text.trim())
+                            if (!isNaN(val)) {
+                                lastValue = val
+                                viewmodel.udp.forward_float_command("front", "set_water_temp", val)
+                            } else {
+                                text = lastValue
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.udp
+                            function onFrontSettingsChanged() {
+                                if (!frontWaterTempLimitEdit.focus) {
+                                    frontWaterTempLimitEdit.text = viewmodel.udp.frontSettings.water_temp.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -300,7 +545,7 @@ Item {
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Предел температуры воды (°С)")
+                    text: "Предел температуры воды (°С)"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -328,10 +573,56 @@ Item {
                         y: 0
                         width: 90
                         height: 30
-                        text: qsTr("70.0")
+                        text: root.udp && root.udp.frontSettings["out_temp"] ? root.udp.frontSettings["out_temp"] : "70.0"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.NoWrap
+                        focus: false
+
+                        property real lastValue: parseFloat(text) || 50
+
+                        onTextChanged: {
+                            var clean = text
+                            clean = clean.replace(",", ".")
+                            clean = clean.replace(/[^0-9.]/g, "")
+                            var firstDot = clean.indexOf(".")
+                            if (firstDot !== -1) {
+                                var before = clean.substring(0, firstDot + 1)
+                                var after = clean.substring(firstDot + 1).replace(/\./g, "")
+                                clean = before + after
+                            }
+
+                            if (clean !== text) {
+                                text = clean
+                            }
+                        }
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            let val = parseFloat(text.trim())
+                            if (!isNaN(val)) {
+                                lastValue = val
+                                viewmodel.udp.forward_float_command("front", "set_out_temp", val)
+                            } else {
+                                text = lastValue
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.udp
+                            function onFrontSettingsChanged() {
+                                if (!frontOutTempLimitEdit.focus) {
+                                    frontOutTempLimitEdit.text = viewmodel.udp.frontSettings.out_temp.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -341,7 +632,7 @@ Item {
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Предел температуры сброса (°С)")
+                    text: "Предел температуры сброса (°С)"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -369,10 +660,56 @@ Item {
                         y: 0
                         width: 90
                         height: 30
-                        text: qsTr("70.0")
+                        text: root.udp && root.udp.frontSettings["wp_temp"] ? root.udp.frontSettings["wp_temp"] : "70.0"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.NoWrap
+                        focus: false
+
+                        property real lastValue: parseFloat(text) || 50
+
+                        onTextChanged: {
+                            var clean = text
+                            clean = clean.replace(",", ".")
+                            clean = clean.replace(/[^0-9.]/g, "")
+                            var firstDot = clean.indexOf(".")
+                            if (firstDot !== -1) {
+                                var before = clean.substring(0, firstDot + 1)
+                                var after = clean.substring(firstDot + 1).replace(/\./g, "")
+                                clean = before + after
+                            }
+
+                            if (clean !== text) {
+                                text = clean
+                            }
+                        }
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            let val = parseFloat(text.trim())
+                            if (!isNaN(val)) {
+                                lastValue = val
+                                viewmodel.udp.forward_float_command("front", "set_wp_temp", val)
+                            } else {
+                                text = lastValue
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.udp
+                            function onFrontSettingsChanged() {
+                                if (!frontWpTempLimitEdit.focus) {
+                                    frontWpTempLimitEdit.text = viewmodel.udp.frontSettings.wp_temp.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -382,7 +719,7 @@ Item {
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Предел температуры платы (°С)")
+                    text: "Предел температуры рабочей части (°С)"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -403,7 +740,7 @@ Item {
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Поменять направление к 0°")
+                    text: "Поменять направление к 0°"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -416,6 +753,7 @@ Item {
                     width: 71
                     height: 30
                     display: AbstractButton.IconOnly
+                    onToggled: viewmodel.udp.forward_command("front", "change_motor_dir")
                 }
 
             }
@@ -429,53 +767,73 @@ Item {
             height: 450
             color: "#ffffff"
             border.width: 1
-
-
-
-
-
-
-
-
-
-
-
+            property var settings: viewmodel.udp.backSettings
 
             Rectangle {
-                id: frontCameraController1
-                x: 435
+                id: backIpController
+                x: 1
                 y: 30
                 width: 434
                 height: 30
                 color: "#ffffff"
+                border.width: 0
                 Rectangle {
-                    id: frontCameraControllerForm1
+                    id: backIpControllerForm
                     x: 30
                     y: 0
                     width: 160
                     height: 30
                     color: "#ffffff"
                     border.width: 1
-                    TextEdit {
-                        id: frontIpControllerEdit3
-                        x: 0
-                        y: 0
+
+                    TextInput {
+                        id: backIpControllerEdit
                         width: 160
                         height: 30
-                        text: qsTr("192 . 168 . 1 . 66")
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        inputMask: "000.000.0.000"
+                        focus: false
+                        text: backSettings.settings && backSettings.settings["ip"] ? backSettings.settings["ip"] : "192.168.1."
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            viewmodel.udp.forward_str_command("back", "set_arduino_ip", backIpControllerEdit.text)
+                            controller.update_settings()
+                        }
+                    }
+                    Connections {
+                        target: viewmodel.udp
+                        function onBackSettingsChanged() {
+                            if (!backIpControllerEdit.focus) {
+                                backIpControllerEdit.text = viewmodel.udp.backSettings.ip.toString()
+                            }
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            backIpControllerEdit.forceActiveFocus()
+                            backIpControllerEdit.cursorPosition = backIpControllerEdit.text.length
+                        }
                     }
                 }
 
                 Text {
-                    id: frontCameraControllerText1
+                    id: backIpControllerText
                     x: 220
                     y: 0
                     width: 210
                     height: 30
-                    text: qsTr("IP-адрес камеры")
+                    text: "IP-адрес контроллера"
                     font.pixelSize: 20
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -483,14 +841,90 @@ Item {
             }
 
             Rectangle {
-                id: frontWaterPressLimit1
+                id: backCameraIp
+                x: 435
+                y: 30
+                width: 434
+                height: 30
+                color: "#ffffff"
+
+                Rectangle {
+                    id: backCameraIpForm
+                    x: 30
+                    y: 0
+                    width: 160
+                    height: 30
+                    color: "#ffffff"
+                    border.width: 1
+                    enabled: backCameraIp.enabled
+                    opacity: backCameraIp.opacity
+                    TextInput {
+                        id: backCameraIpEdit
+                        width: 160
+                        height: 30
+                        font.pixelSize: 20
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        inputMask: "000.000.0.000"
+                        focus: false
+                        enabled: backCameraIp.enabled
+                        opacity: backCameraIp.opacity
+                        text: root.onvif && root.onvif["backIp"] ? root.onvif["backIp"] : "192.168.1."
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            viewmodel.onvif.forward_str_command("back", "set_ip", backCameraIpEdit.text)
+                            viewmodel.dvrip.forward_str_command("back", "set_ip", backCameraIpEdit.text)
+                        }
+                    }
+                    Connections {
+                        target: viewmodel.onvif
+                        function onBackIpChanged() {
+                            if (!backCameraIpEdit.focus) {
+                                backCameraIpEdit.text = viewmodel.onvif.backIp.toString()
+                            }
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            backCameraIpEdit.forceActiveFocus()
+                            backCameraIpEdit.cursorPosition = backCameraIpEdit.text.length
+                        }
+                    }
+                }
+
+
+                Text {
+                    id: backCameraIpText
+                    x: 220
+                    y: 0
+                    width: 210
+                    height: 30
+                    text: "IP-адрес камеры"
+                    font.pixelSize: 20
+                    horizontalAlignment: Text.AlignLeft
+                    verticalAlignment: Text.AlignVCenter
+                }
+            }
+
+
+            Rectangle {
+                id: backWaterPressLimit
                 x: 1
                 y: 90
                 width: 434
                 height: 30
                 color: "#ffffff"
                 Rectangle {
-                    id: frontWaterPressLimitForm1
+                    id: backWaterPressLimitForm
                     x: 30
                     y: 0
                     width: 90
@@ -498,40 +932,87 @@ Item {
                     color: "#ffffff"
                     border.width: 1
                     TextEdit {
-                        id: frontWaterPressLimitEdit1
+                        id: backWaterPressLimitEdit
                         x: 0
                         y: 0
                         width: 90
                         height: 30
-                        text: qsTr("2.0")
+                        text: root.udp && root.udp.backSettings["water_pressure"] ? root.udp.backSettings["water_pressure"] : "2.0"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.NoWrap
+                        focus: false
+
+                        property real lastValue: parseFloat(text) || 10
+
+                        onTextChanged: {
+                            var clean = text
+                            clean = clean.replace(",", ".")
+                            clean = clean.replace(/[^0-9.]/g, "")
+                            var firstDot = clean.indexOf(".")
+                            if (firstDot !== -1) {
+                                var before = clean.substring(0, firstDot + 1)
+                                var after = clean.substring(firstDot + 1).replace(/\./g, "")
+                                clean = before + after
+                            }
+
+                            if (clean !== text) {
+                                text = clean
+                            }
+                        }
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            let val = parseFloat(text.trim())
+                            if (!isNaN(val)) {
+                                lastValue = val
+                                viewmodel.udp.forward_float_command("back", "set_water_pressure", val)
+                            } else {
+                                text = lastValue
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.udp
+                            function onBackSettingsChanged() {
+                                if (!backWaterPressLimitEdit.focus) {
+                                    backWaterPressLimitEdit.text = viewmodel.udp.backSettings.water_pressure.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
                 Text {
-                    id: frontWaterPressLimitText1
+                    id: backWaterPressLimitText
                     x: 135
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Предел давления воды (кгс/см²)")
+                    text: "Предел давления воды (кгс/см²)"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
                 }
             }
 
+
             Rectangle {
-                id: frontAirPressLimit1
+                id: backAirPressLimit
                 x: 434
                 y: 90
                 width: 434
                 height: 30
                 color: "#ffffff"
                 Rectangle {
-                    id: frontAirPressLimitForm1
+                    id: backAirPressLimitForm
                     x: 30
                     y: 0
                     width: 90
@@ -539,15 +1020,61 @@ Item {
                     color: "#ffffff"
                     border.width: 1
                     TextEdit {
-                        id: frontAirPressLimitEdit1
+                        id: backAirPressLimitEdit
                         x: 0
                         y: 0
                         width: 90
                         height: 30
-                        text: qsTr("2.0")
+                        text: root.udp && root.udp.backSettings["air_pressure"] ? root.udp.backSettings["air_pressure"] : "2.0"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.NoWrap
+                        focus: false
+
+                        property real lastValue: parseFloat(text) || 10
+
+                        onTextChanged: {
+                            var clean = text
+                            clean = clean.replace(",", ".")
+                            clean = clean.replace(/[^0-9.]/g, "")
+                            var firstDot = clean.indexOf(".")
+                            if (firstDot !== -1) {
+                                var before = clean.substring(0, firstDot + 1)
+                                var after = clean.substring(firstDot + 1).replace(/\./g, "")
+                                clean = before + after
+                            }
+
+                            if (clean !== text) {
+                                text = clean
+                            }
+                        }
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            let val = parseFloat(text.trim())
+                            if (!isNaN(val)) {
+                                lastValue = val
+                                viewmodel.udp.forward_float_command("back", "set_air_pressure", val)
+                            } else {
+                                text = lastValue
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.udp
+                            function onBackSettingsChanged() {
+                                if (!backAirPressLimitEdit.focus) {
+                                    backAirPressLimitEdit.text = viewmodel.udp.backSettings.air_pressure.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -557,22 +1084,23 @@ Item {
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Предел давления воздуха (кгс/см²)")
+                    text: "Предел давления воздуха (кгс/см²)"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
                 }
             }
 
+
             Rectangle {
-                id: frontAirTempLimit1
+                id: backAirTempLimit
                 x: 1
                 y: 150
                 width: 434
                 height: 30
                 color: "#ffffff"
                 Rectangle {
-                    id: frontAirTempLimitForm1
+                    id: backAirTempLimitForm
                     x: 30
                     y: 0
                     width: 90
@@ -580,40 +1108,87 @@ Item {
                     color: "#ffffff"
                     border.width: 1
                     TextEdit {
-                        id: frontAirTempLimitEdit1
+                        id: backAirTempLimitEdit
                         x: 0
                         y: 0
                         width: 90
                         height: 30
-                        text: qsTr("50.0")
+                        text: root.udp && root.udp.backSettings["air_temp"] ? root.udp.backSettings["air_temp"] : "60.0"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.NoWrap
+                        focus: false
+
+                        property real lastValue: parseFloat(text) || 50
+
+                        onTextChanged: {
+                            var clean = text
+                            clean = clean.replace(",", ".")
+                            clean = clean.replace(/[^0-9.]/g, "")
+                            var firstDot = clean.indexOf(".")
+                            if (firstDot !== -1) {
+                                var before = clean.substring(0, firstDot + 1)
+                                var after = clean.substring(firstDot + 1).replace(/\./g, "")
+                                clean = before + after
+                            }
+
+                            if (clean !== text) {
+                                text = clean
+                            }
+                        }
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            let val = parseFloat(text.trim())
+                            if (!isNaN(val)) {
+                                lastValue = val
+                                viewmodel.udp.forward_float_command("back", "set_air_temp", val)
+                            } else {
+                                text = lastValue
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.udp
+                            function onBackSettingsChanged() {
+                                if (!backAirTempLimitEdit.focus) {
+                                    backAirTempLimitEdit.text = viewmodel.udp.backSettings.air_temp.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
                 Text {
-                    id: frontAirTempLimitText1
+                    id: backAirTempLimitText
                     x: 135
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Предел температуры воздуха (°С)")
+                    text: "Предел температуры воздуха (°С)"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
                 }
             }
 
+
             Rectangle {
-                id: frontWaterTempLimit1
+                id: backWaterTempLimit
                 x: 1
                 y: 210
                 width: 434
                 height: 30
                 color: "#ffffff"
                 Rectangle {
-                    id: frontWaterTempLimitForm1
+                    id: backWaterTempLimitForm
                     x: 30
                     y: 0
                     width: 90
@@ -621,40 +1196,87 @@ Item {
                     color: "#ffffff"
                     border.width: 1
                     TextEdit {
-                        id: frontWaterTempLimitEdit1
+                        id: backWaterTempLimitEdit
                         x: 0
                         y: 0
                         width: 90
                         height: 30
-                        text: qsTr("50.0")
+                        text: root.udp && root.udp.backSettings["water_temp"] ? root.udp.backSettings["water_temp"] : "50.0"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.NoWrap
+                        focus: false
+
+                        property real lastValue: parseFloat(text) || 50
+
+                        onTextChanged: {
+                            var clean = text
+                            clean = clean.replace(",", ".")
+                            clean = clean.replace(/[^0-9.]/g, "")
+                            var firstDot = clean.indexOf(".")
+                            if (firstDot !== -1) {
+                                var before = clean.substring(0, firstDot + 1)
+                                var after = clean.substring(firstDot + 1).replace(/\./g, "")
+                                clean = before + after
+                            }
+
+                            if (clean !== text) {
+                                text = clean
+                            }
+                        }
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            let val = parseFloat(text.trim())
+                            if (!isNaN(val)) {
+                                lastValue = val
+                                viewmodel.udp.forward_float_command("back", "set_water_temp", val)
+                            } else {
+                                text = lastValue
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.udp
+                            function onBackSettingsChanged() {
+                                if (!backWaterTempLimitEdit.focus) {
+                                    backWaterTempLimitEdit.text = viewmodel.udp.backSettings.water_temp.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
                 Text {
-                    id: frontWaterTempLimitText1
+                    id: backWaterTempLimitText
                     x: 135
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Предел температуры воды (°С)")
+                    text: "Предел температуры воды (°С)"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
                 }
             }
 
+
             Rectangle {
-                id: frontOutTempLimit1
+                id: backOutTempLimit
                 x: 1
                 y: 270
                 width: 434
                 height: 30
                 color: "#ffffff"
                 Rectangle {
-                    id: frontOutTempLimitForm1
+                    id: backOutTempLimitForm
                     x: 30
                     y: 0
                     width: 90
@@ -662,30 +1284,77 @@ Item {
                     color: "#ffffff"
                     border.width: 1
                     TextEdit {
-                        id: frontOutTempLimitEdit1
+                        id: backOutTempLimitEdit
                         x: 0
                         y: 0
                         width: 90
                         height: 30
-                        text: qsTr("70.0")
+                        text: root.udp && root.udp.backSettings["out_temp"] ? root.udp.backSettings["out_temp"] : "70.0"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.NoWrap
+                        focus: false
+
+                        property real lastValue: parseFloat(text) || 50
+
+                        onTextChanged: {
+                            var clean = text
+                            clean = clean.replace(",", ".")
+                            clean = clean.replace(/[^0-9.]/g, "")
+                            var firstDot = clean.indexOf(".")
+                            if (firstDot !== -1) {
+                                var before = clean.substring(0, firstDot + 1)
+                                var after = clean.substring(firstDot + 1).replace(/\./g, "")
+                                clean = before + after
+                            }
+
+                            if (clean !== text) {
+                                text = clean
+                            }
+                        }
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            let val = parseFloat(text.trim())
+                            if (!isNaN(val)) {
+                                lastValue = val
+                                viewmodel.udp.forward_float_command("back", "set_out_temp", val)
+                            } else {
+                                text = lastValue
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.udp
+                            function onBackSettingsChanged() {
+                                if (!backOutTempLimitEdit.focus) {
+                                    backOutTempLimitEdit.text = viewmodel.udp.backSettings.out_temp.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
                 Text {
-                    id: frontOutTempLimitText1
+                    id: backOutTempLimitText
                     x: 135
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Предел температуры сброса (°С)")
+                    text: "Предел температуры сброса (°С)"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
                 }
             }
+
 
             Rectangle {
                 id: systemName
@@ -708,10 +1377,26 @@ Item {
                         y: 0
                         width: 270
                         height: 30
-                        text: qsTr("Система 1")
+                        text: viewmodel && viewmodel.currentName ? viewmodel.currentName : "Система 1"
                         font.pixelSize: 22
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                viewmodel.rename_system(systemNameEdit.text)
+                            }
+                        }
+                        Connections {
+                            target: viewmodel
+                            function onCurrentNameChanged() {
+                                if (!systemNameEdit.focus) {
+                                    systemNameEdit.text = viewmodel.currentName.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -721,22 +1406,23 @@ Item {
                     y: 30
                     width: 270
                     height: 30
-                    text: qsTr("Название системы")
+                    text: "Название системы"
                     font.pixelSize: 22
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
             }
 
+
             Rectangle {
-                id: frontWpTempLimit1
+                id: backWpTempLimit
                 x: 1
                 y: 330
                 width: 434
                 height: 30
                 color: "#ffffff"
                 Rectangle {
-                    id: frontWpTempLimitForm1
+                    id: backWpTempLimitForm
                     x: 30
                     y: 0
                     width: 90
@@ -744,25 +1430,71 @@ Item {
                     color: "#ffffff"
                     border.width: 1
                     TextEdit {
-                        id: frontWpTempLimitEdit1
+                        id: backWpTempLimitEdit
                         x: 0
                         y: 0
                         width: 90
                         height: 30
-                        text: qsTr("70.0")
+                        text: root.udp && root.udp.backSettings["wp_temp"] ? root.udp.backSettings["wp_temp"] : "70.0"
                         font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        wrapMode: Text.NoWrap
+                        focus: false
+
+                        property real lastValue: parseFloat(text) || 50
+
+                        onTextChanged: {
+                            var clean = text
+                            clean = clean.replace(",", ".")
+                            clean = clean.replace(/[^0-9.]/g, "")
+                            var firstDot = clean.indexOf(".")
+                            if (firstDot !== -1) {
+                                var before = clean.substring(0, firstDot + 1)
+                                var after = clean.substring(firstDot + 1).replace(/\./g, "")
+                                clean = before + after
+                            }
+
+                            if (clean !== text) {
+                                text = clean
+                            }
+                        }
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            let val = parseFloat(text.trim())
+                            if (!isNaN(val)) {
+                                lastValue = val
+                                viewmodel.udp.forward_float_command("back", "set_wp_temp", val)
+                            } else {
+                                text = lastValue
+                            }
+                        }
+                        Connections {
+                            target: viewmodel.udp
+                            function onBackSettingsChanged() {
+                                if (!backWpTempLimitEdit.focus) {
+                                    backWpTempLimitEdit.text = viewmodel.udp.backSettings.wp_temp.toString()
+                                }
+                            }
+                        }
                     }
                 }
 
                 Text {
-                    id: frontWpTempLimitText1
+                    id: backWpTempLimitText
                     x: 135
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Предел температуры платы (°С)")
+                    text: "Предел температуры рабочей части (°С)"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
@@ -770,41 +1502,44 @@ Item {
             }
 
 
+
             Rectangle {
-                id: frontMotorDir1
+                id: backMotorDir
                 x: 434
                 y: 150
                 width: 434
                 height: 30
                 color: "#ffffff"
                 Text {
-                    id: frontMotorDirText1
+                    id: backMotorDirText
                     x: 135
                     y: 0
                     width: 299
                     height: 30
-                    text: qsTr("Поменять направление к 0°")
+                    text: "Поменять направление к 0°"
                     font.pixelSize: 18
                     horizontalAlignment: Text.AlignLeft
                     verticalAlignment: Text.AlignVCenter
                 }
 
                 SwitchDelegate {
-                    id: frontMotorDirSwitch1
+                    id: backMotorDirSwitch
                     x: 39
                     y: 0
                     width: 71
                     height: 30
                     display: AbstractButton.IconOnly
+                    onToggled: viewmodel.udp.forward_command("back", "change_motor_dir")
                 }
             }
+
             Button {
                 id: deleteSystemButton
                 x: 570
                 y: 375
                 width: 270
                 height: 45
-                text: qsTr("УДАЛИТЬ СИСТЕМУ")
+                text: "УДАЛИТЬ СИСТЕМУ"
                 font.pointSize: 14
 
                 background: Rectangle {
@@ -830,6 +1565,7 @@ Item {
 
                 hoverEnabled: true
             }
+
             Rectangle {
                 id: systemIpAdress
                 x: 570
@@ -837,6 +1573,7 @@ Item {
                 width: 270
                 height: 60
                 color: "#ffffff"
+
                 Rectangle {
                     id: systemIpAdressForm
                     x: 0
@@ -845,18 +1582,48 @@ Item {
                     height: 30
                     color: "#ffffff"
                     border.width: 1
-                    TextEdit {
+                    TextInput {
                         id: systemIpAdressEdit
-                        x: 0
-                        y: 0
                         width: 270
                         height: 30
-                        text: qsTr("192 . 168 . 1 .13")
-                        font.pixelSize: 22
+                        font.pixelSize: 20
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
+                        inputMask: "000.000.0.000"
+                        focus: false
+                        text: backSettings.settings && backSettings.settings["sys_ip"] ? backSettings.settings["sys_ip"] : "192.168.1."
+
+                        Keys.onReturnPressed: focus = false
+
+                        onFocusChanged: {
+                            if (!focus) {
+                                commitValue()
+                            }
+                        }
+
+                        function commitValue() {
+                            viewmodel.udp.forward_str_command("front", "set_system_ip", systemIpAdressEdit.text)
+                            viewmodel.udp.forward_str_command("back", "set_system_ip", systemIpAdressEdit.text)
+                        }
+                    }
+                    Connections {
+                        target: viewmodel.udp
+                        function onBackSettingsChanged() {
+                            if (!backIpControllerEdit.focus) {
+                                backIpControllerEdit.text = viewmodel.udp.backSettings.ip.toString()
+                            }
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            systemIpAdressEdit.forceActiveFocus()
+                            systemIpAdressEdit.cursorPosition = systemIpAdressEdit.text.length
+                        }
                     }
                 }
+
+
 
                 Text {
                     id: systemIpAdressText
@@ -864,53 +1631,13 @@ Item {
                     y: 30
                     width: 270
                     height: 30
-                    text: qsTr("IP-адрес компьютера")
+                    text: "IP-адрес компьютера"
                     font.pixelSize: 22
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
-            }
-            Rectangle {
-                id: frontIpController1
-                x: 1
-                y: 30
-                width: 434
-                height: 30
-                color: "#ffffff"
-                Rectangle {
-                    id: frontIpControllerForm1
-                    x: 30
-                    y: 0
-                    width: 160
-                    height: 30
-                    color: "#ffffff"
-                    border.width: 1
-                    TextEdit {
-                        id: frontIpControllerEdit2
-                        x: 0
-                        y: 0
-                        width: 160
-                        height: 30
-                        text: qsTr("192 . 168 . 1 . 66")
-                        font.pixelSize: 20
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-                }
 
-                Text {
-                    id: frontIpControllerText1
-                    x: 220
-                    y: 0
-                    width: 210
-                    height: 30
-                    text: qsTr("IP-адрес контроллера")
-                    font.pixelSize: 20
-                    horizontalAlignment: Text.AlignLeft
-                    verticalAlignment: Text.AlignVCenter
-                }
             }
         }
-
     }
 }

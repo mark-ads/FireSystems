@@ -13,6 +13,11 @@ Rectangle {
     property int activeIndex: 0
     signal screenSelected(int index)
 
+    Component.onCompleted: {
+        viewmodel.onGuiReady()
+        controller.onGuiReady()
+    }
+
     Rectangle {
         id: switchButtons
         width: 180
@@ -95,6 +100,7 @@ Rectangle {
                 width: parent.width; height: 24
                 text: frontSwitch.state === -1 ? "НЕТ СВЯЗИ" :
                       frontSwitch.state === 0 ? "ВКЛ" :
+                      frontSwitch.state === 4 ? "ПЕРЕЗАГР" :
                       frontSwitch.state === 5 ? "ПЕРЕЗАГР." : "ВЫКЛ"
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
@@ -201,14 +207,13 @@ Rectangle {
             screenSelected(index)
         }
 
-
-
         TabButton {
             id: systemButton
             checkable: true
             checked: panel.activeIndex === 0
             Layout.preferredWidth: 180
             Layout.preferredHeight: 90
+
             onClicked: {
                 if (panel.activeIndex !== 0) {
                     panel.activeIndex = 0
@@ -224,7 +229,7 @@ Rectangle {
             }
 
             contentItem: Text {
-                text: 'Система\nKA-...'
+                text: "Управление\n" + (viewmodel && viewmodel.currentName ? viewmodel.currentName : "")
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
                 font.pointSize: 12
@@ -232,7 +237,6 @@ Rectangle {
                 color: "black"
             }
         }
-
 
 
         TabButton {

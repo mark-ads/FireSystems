@@ -1,9 +1,9 @@
+from config import Config
 from controls.onvif_controller import OnvifController
 from controls.dvrip_controller import DvripController
 from controls.udp_controller import UdpController
-from PyQt5.QtCore import QObject, pyqtSlot, pyqtProperty, pyqtSignal
-from models import Command
-from typing import Literal
+from PyQt5.QtCore import QObject, QVariant, pyqtSlot, pyqtProperty, pyqtSignal
+
 from .onvif_vm import OnvifVM
 from .dvrip_vm import DvripVM
 from .udp_vm import UdpVM
@@ -15,15 +15,23 @@ class Viewmodel(QObject):
     Содержит в себе все остальные VM.
     '''
     guiIsReady = pyqtSignal()
+    namesUpdated = pyqtSignal()
+    currentNameChanged = pyqtSignal()
 
-    def __init__(self, 
+    def __init__(self, config: Config,
                  onvif_front: OnvifController, onvif_back: OnvifController, 
                  dvrip_front: DvripController, dvrip_back: DvripController,
                  udp_front: UdpController, udp_back: UdpController):
         super().__init__()
+        self.config = config
+        self.current_system = 'system_1'
+
         self._onvif = OnvifVM(onvif_front, onvif_back)
         self._dvrip = DvripVM(dvrip_front, dvrip_back)
         self._udp = UdpVM(udp_front, udp_back)
+
+        self._system_names = {}
+        self._current_name = None
 
         self.guiIsReady.connect(self._onvif.connect)
         self.guiIsReady.connect(self._dvrip.connect)
@@ -44,3 +52,45 @@ class Viewmodel(QObject):
     @pyqtSlot()
     def onGuiReady(self):
         self.guiIsReady.emit()
+        self.update_system_names()
+        self.choose_system(self.current_system)
+
+    @pyqtProperty(QVariant, notify=namesUpdated)
+    def systemNames(self):
+        return self._system_names
+
+    @systemNames.setter
+    def systemNames(self, value):
+        self._system_names = value
+        self.namesUpdated.emit()
+
+    @pyqtProperty(str, notify=currentNameChanged)
+    def currentName(self):
+        return self._current_name
+
+    @currentName.setter
+    def currentName(self, value):
+        self._current_name = value
+        self.currentNameChanged.emit()
+
+    @pyqtSlot()
+    def update_system_names(self):
+        system_names = {}
+        for system in self.config.systems.items():
+            system_names[system[0]] = system[1].name
+        print(system_names)
+        self.systemNames = system_names
+
+    @pyqtSlot(str)
+    def choose_system(self, new_system: str):
+        if new_system in self.systemNames:
+            self.current_system = new_system
+            self.currentName = self.systemNames[new_system]
+            print(f'system CHANGED!@!! new_system = {new_system}')
+
+    @pyqtSlot(str)
+    def rename_system(self, new_name: str):
+        self.config.set(self.current_system, 'name', value=new_name)
+        self.update_system_names()
+        self.choose_system(self.current_system)
+        print(f'system RENAMED, new_name = {new_name}')

@@ -46,6 +46,7 @@ class DvripController(QThread):
                 self._set_initial_camera_settings()
         except Exception as e:
                 self.logger.add_log('ERROR', f'Login failure. IP: {self.ip}. \n {e}')
+                self.camera = None
 
     def disconnect(self):
         '''Метод для отключения текущего подключения и очистки параметров'''
@@ -59,6 +60,9 @@ class DvripController(QThread):
         self.mirror = None
         self.flip = None
         self.ircut = None
+        self.encode_params = None
+        self.camera_params = None
+        self._send_change_notification()
 
         if self.camera:
             try:
@@ -67,7 +71,6 @@ class DvripController(QThread):
             except Exception as e:
                 self.logger.add_log('CRITICAL', f'Ошибка при disconnect(): {e}')
             self.camera = None
-            self._send_change_notification()
 
     def _set_initial_camera_settings(self):
         '''Метод для применения сохраненных, а так же стандартных настроек при подключении к камере.'''
@@ -139,10 +142,10 @@ class DvripController(QThread):
         self.update_settings()
 
     def _check_ready(self) -> bool:
-        if self.camera is not None:
-            return True
-        self.logger.add_log('CRITICAL', f'_check_ready() -> None')
-        return False
+        if self.camera is None:
+            self.logger.add_log('DEBUG', f'_check_ready() -> None')
+            return False
+        return True
 
     def add_command(self, cmd: Command):
         self.commands.put(cmd)
@@ -261,6 +264,11 @@ class DvripController(QThread):
         self._running = False
         self.commands.put(None)
 
+    def set_ip(self, value: str):
+        self.logger.add_log('INFO', f'command = set_ip({value})')
+        self.config.set(self.system_id, self.slot, 'camera', 'ip', value=value)
+        self.connect()
+
     def set_fps(self, value: int):
         if not self._check_ready or self.fps is None:
             self.logger.add_log('WARN', f'self.fps = {self.fps}')
@@ -337,7 +345,7 @@ class DvripController(QThread):
             self.flip = enabled
 
     def run(self):
-        self.logger.add_log('INFO', f'Ждем команду')
+        self.logger.add_log('DEBUG', f'Ждем команду')
         while self._running:
             command = self.commands.get()
             self.logger.add_log('DEBUG', f'command = {command}')

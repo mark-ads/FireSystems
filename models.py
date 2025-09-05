@@ -12,7 +12,6 @@ class ArduinoConfig(BaseModel):
     water_temp_limit: float = 50.0
     out_temp_limit: float = 70.0
     wp_temp_limit: float = 70.0
-    change_motor_direction: bool = False
 
 
 class CameraConfig(BaseModel):
@@ -74,8 +73,16 @@ class Slot:
     slot: Literal['front', 'back'] ######### доделать
 
 
+
 @dataclass
 class Command:
     target: Literal['front', 'back']
     command: str
     value: Optional[Union[int, float, bool]] = field(default=None)
+
+
+@dataclass
+class Telemetry:
+    system: Literal['system_1', 'system_2', 'system_3', 'system_4']
+    slot: Literal['front', 'back']
+    data: str

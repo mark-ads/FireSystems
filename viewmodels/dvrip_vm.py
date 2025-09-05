@@ -219,6 +219,20 @@ class DvripVM(QObject):
             self.back.add_command(cmd)
         self._start_feedback_timer(slot)
 
+    @pyqtSlot(str, str, str)
+    def forward_str_command(self, slot: Literal['front', 'back'], command: str, value: str):
+        cmd = Command(
+            target=slot,
+            command=command,
+            value=value
+            )
+        if slot == 'front':
+            self.front.add_command(cmd)
+
+        elif slot == 'back':
+            self.back.add_command(cmd)
+        self._start_feedback_timer(slot)
+
     @pyqtSlot(str, str, bool)
     def forward_bool_command(self, slot: Literal['front', 'back'], command: str, value: bool):
         cmd = Command(

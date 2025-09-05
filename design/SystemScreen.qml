@@ -6,12 +6,6 @@ Item {
     width: 1920
     height: 1080
 
-
-    Component.onCompleted: {
-        viewmodel.onGuiReady()
-        controller.onGuiIsReady()
-    }
-
     Rectangle {
         id: mainRectangle
         anchors.fill: parent
@@ -393,7 +387,7 @@ Item {
                         Connections {
                             target: viewmodel.dvrip
                             function onFrontExpoChanged() {
-                                if (!frontExpositionIndicatorText.focus) {
+                                if (!frontExpositionIndicatorText.focus && typeof viewmodel.dvrip.frontExpo !== "undefined") {
                                     frontExpositionIndicatorText.text = viewmodel.dvrip.frontExpo.toString()
                                 }
                             }
@@ -551,7 +545,7 @@ Item {
                         Connections {
                             target: viewmodel.dvrip
                             function onFrontGainChanged() {
-                                if (!frontISOIndicatorText.focus) {
+                                if (!frontISOIndicatorText.focus && typeof viewmodel.dvrip.frontGain !== "undefined") {
                                     frontISOIndicatorText.text = viewmodel.dvrip.frontGain.toString()
                                 }
                             }
@@ -594,6 +588,7 @@ Item {
                     width: 180
                     height: 60
                     color: "#ffffff"
+                    enabled: viewmodel.onvif.frontBrightness !== null && viewmodel.onvif.frontBrightness !== undefined
 
                     Text {
                         id: frontBrightTitleText
@@ -606,7 +601,7 @@ Item {
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         font.bold: true
-                        color: (viewmodel.onvif.frontBrightness !== null && viewmodel.onvif.frontBrightness !== undefined) ? "black" : "gray"
+                        color: (frontBright.enabled === true) ? "black" : "gray"
                     }
 
                     Slider {
@@ -619,12 +614,16 @@ Item {
                         to: 100
                         from: 0
                         value: (viewmodel.onvif.frontBrightness !== null && viewmodel.onvif.frontBrightness !== undefined) ? viewmodel.onvif.frontBrightness : 50
-                        enabled: viewmodel.onvif.frontBrightness !== null && viewmodel.onvif.frontBrightness !== undefined
+                        enabled: frontBright.enabled
                         opacity: enabled ? 1.0 : 0.5
                         onValueChanged: {
-                            if (enabled) {
-                                viewmodel.onvif.forward_float_command("front", "set_brightness", value)
-                            }
+                            if (!enabled)
+                                return;
+
+                            if (value === 50 && (viewmodel.onvif.frontBrightness === null || viewmodel.onvif.frontBrightness === undefined))
+                                        return;
+
+                            viewmodel.onvif.forward_float_command("front", "set_brightness", value)
                         }
                     }
                 }
@@ -663,9 +662,13 @@ Item {
                         enabled: viewmodel.onvif.frontContrast !== null && viewmodel.onvif.frontContrast !== undefined
                         opacity: enabled ? 1.0 : 0.5
                         onValueChanged: {
-                            if (enabled) {
-                                viewmodel.onvif.forward_float_command("front", "set_contrast", value)
-                            }
+                            if (!enabled)
+                                return;
+
+                            if (value === 50 && (viewmodel.onvif.frontContrast === null || viewmodel.onvif.frontContrast === undefined))
+                                        return;
+
+                            viewmodel.onvif.forward_float_command("front", "set_contrast", value)
                         }
                     }
                 }
@@ -705,9 +708,13 @@ Item {
                         enabled: viewmodel.onvif.frontSaturation !== null && viewmodel.onvif.frontSaturation !== undefined
                         opacity: enabled ? 1.0 : 0.5
                         onValueChanged: {
-                            if (enabled) {
-                                viewmodel.onvif.forward_float_command("front", "set_saturation", value)
-                            }
+                            if (!enabled)
+                                return;
+
+                            if (value === 50 && (viewmodel.onvif.frontSaturation === null || viewmodel.onvif.frontSaturation === undefined))
+                                        return;
+
+                            viewmodel.onvif.forward_float_command("front", "set_saturation", value)
                         }
                     }
                 }
@@ -988,7 +995,7 @@ Item {
                         Connections {
                             target: viewmodel.dvrip
                             function onFrontFpsChanged() {
-                                if (!frontFPSIndicatorText.focus) {
+                                if (!frontFPSIndicatorText.focus && typeof viewmodel.dvrip.frontFps !== "undefined") {
                                     frontFPSIndicatorText.text = viewmodel.dvrip.frontFps.toString()
                                 }
                             }
@@ -1393,7 +1400,7 @@ Item {
                         Connections {
                             target: viewmodel.dvrip
                             function onBackExpoChanged() {
-                                if (!backExpositionIndicatorText.focus) {
+                                if (!backExpositionIndicatorText.focus && typeof viewmodel.dvrip.backExpo !== "undefined") {
                                     backExpositionIndicatorText.text = viewmodel.dvrip.backExpo.toString()
                                 }
                             }
@@ -1549,7 +1556,7 @@ Item {
                         Connections {
                             target: viewmodel.dvrip
                             function onBackGainChanged() {
-                                if (!backISOIndicatorText.focus) {
+                                if (!backISOIndicatorText.focus && typeof viewmodel.dvrip.backGain !== "undefined") {
                                     backISOIndicatorText.text = viewmodel.dvrip.backGain.toString()
                                 }
                             }
@@ -1616,9 +1623,13 @@ Item {
                         value: (viewmodel.onvif.backBrightness !== null && viewmodel.onvif.backBrightness !== undefined) ? viewmodel.onvif.backBrightness : 50
                         stepSize: 2
                         onValueChanged: {
-                            if (enabled) {
-                                viewmodel.onvif.forward_float_command("back", "set_brightness", value)
-                            }
+                            if (!enabled)
+                                return;
+
+                            if (value === 50 && (viewmodel.onvif.backBrightness === null || viewmodel.onvif.backBrightness === undefined))
+                                        return;
+
+                            viewmodel.onvif.forward_float_command("back", "set_brightness", value)
                         }
                         enabled: viewmodel.onvif.backBrightness !== null && viewmodel.onvif.backBrightness !== undefined
                         to: 100
@@ -1657,9 +1668,13 @@ Item {
                         value: (viewmodel.onvif.backContrast !== null && viewmodel.onvif.backContrast !== undefined) ? viewmodel.onvif.backContrast : 50
                         stepSize: 2
                         onValueChanged: {
-                            if (enabled) {
-                                viewmodel.onvif.forward_float_command("back", "set_contrast", value)
-                            }
+                            if (!enabled)
+                                return;
+
+                            if (value === 50 && (viewmodel.onvif.backContrast === null || viewmodel.onvif.backContrast === undefined))
+                                        return;
+
+                            viewmodel.onvif.forward_float_command("back", "set_contrast", value)
                         }
                         enabled: viewmodel.onvif.backContrast !== null && viewmodel.onvif.backContrast !== undefined
                         to: 100
@@ -1699,9 +1714,13 @@ Item {
                         value: (viewmodel.onvif.backSaturation !== null && viewmodel.onvif.backSaturation !== undefined) ? viewmodel.onvif.backSaturation : 50
                         stepSize: 2
                         onValueChanged: {
-                            if (enabled) {
-                                viewmodel.onvif.forward_float_command("back", "set_saturation", value)
-                            }
+                            if (!enabled)
+                                return;
+
+                            if (value === 50 && (viewmodel.onvif.backSaturation === null || viewmodel.onvif.backSaturation === undefined))
+                                        return;
+
+                            viewmodel.onvif.forward_float_command("back", "set_saturation", value)
                         }
                         enabled: viewmodel.onvif.backSaturation !== null && viewmodel.onvif.backSaturation !== undefined
                         to: 100
@@ -1981,7 +2000,7 @@ Item {
                         Connections {
                             target: viewmodel.dvrip
                             function onBackFpsChanged() {
-                                if (!backFPSIndicatorText.focus) {
+                                if (!backFPSIndicatorText.focus && typeof viewmodel.dvrip.backFps !== "undefined") {
                                     backFPSIndicatorText.text = viewmodel.dvrip.backFps.toString()
                                 }
                             }
