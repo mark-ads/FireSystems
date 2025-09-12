@@ -372,3 +372,6 @@ MigrationBackup/
 FodyWeavers.xsd
 /.env
 /FireSystems.pyproj
+/test.py
+/gstreamer/lib/gstreamer-1.0
+/gstreamer
