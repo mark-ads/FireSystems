@@ -17,6 +17,7 @@ class ArduinoConfig(BaseModel):
 class CameraConfig(BaseModel):
     ip: IPvAnyAddress = '192.168.1.20'
     onvif_port: int = 8899
+    rtsp: str = ''
     login: str = 'admin'
     password: str = ''
     fps: int = 25
@@ -69,8 +70,9 @@ class Settings(BaseModel):
     )
 
 
-class Slot:
-    slot: Literal['front', 'back'] ######### доделать
+Slot = Literal['front', 'back']
+
+System = Literal['system_1', 'system_2', 'system_3', 'system_4']
 
 
 
@@ -78,7 +80,7 @@ class Slot:
 class Command:
     target: Literal['front', 'back']
     command: str
-    value: Optional[Union[int, float, bool]] = field(default=None)
+    value: Optional[Union[str, int, float, bool]] = field(default=None)
 
 
 @dataclass

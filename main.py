@@ -1,6 +1,4 @@
 import sys
-import faulthandler
-faulthandler.enable()
 from app import create_app
 from PyQt5.QtWidgets import QApplication
 

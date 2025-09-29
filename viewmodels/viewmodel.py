@@ -1,3 +1,5 @@
+from PyQt5.QtQuick import QQuickItem
+from camera.camera_stream import VideoStream
 from config import Config
 from controls.onvif_controller import OnvifController
 from controls.dvrip_controller import DvripController
@@ -14,14 +16,16 @@ class Viewmodel(QObject):
     Общий Viewmodel. Передаётся в QML как контекст.
     Содержит в себе все остальные VM.
     '''
-    guiIsReady = pyqtSignal()
+    switchSystems = pyqtSignal(str)
     namesUpdated = pyqtSignal()
     currentNameChanged = pyqtSignal()
 
     def __init__(self, config: Config,
                  onvif_front: OnvifController, onvif_back: OnvifController, 
                  dvrip_front: DvripController, dvrip_back: DvripController,
-                 udp_front: UdpController, udp_back: UdpController):
+                 udp_front: UdpController, udp_back: UdpController,
+                 stream_front: VideoStream, stream_back: VideoStream
+                 ):
         super().__init__()
         self.config = config
         self.current_system = 'system_1'
@@ -30,12 +34,15 @@ class Viewmodel(QObject):
         self._dvrip = DvripVM(dvrip_front, dvrip_back)
         self._udp = UdpVM(udp_front, udp_back)
 
+        self._front_stream = stream_front
+        self._back_stream = stream_back
+
         self._system_names = {}
         self._current_name = None
 
-        self.guiIsReady.connect(self._onvif.connect)
-        self.guiIsReady.connect(self._dvrip.connect)
-        self.guiIsReady.connect(self._udp.send_params_to_gui)
+        self.switchSystems.connect(self._onvif.connect)
+        self.switchSystems.connect(self._dvrip.connect)
+        self.switchSystems.connect(self._udp.send_params_to_gui)
 
     @pyqtProperty(QObject, constant=True)
     def onvif(self):
@@ -49,9 +56,16 @@ class Viewmodel(QObject):
     def udp(self):
         return self._udp
 
+    @pyqtProperty(QQuickItem, constant=True)
+    def frontStream(self):
+        return self._front_stream
+
+    @pyqtProperty(QQuickItem, constant=True)
+    def backStream(self):
+        return self._back_stream
+
     @pyqtSlot()
     def onGuiReady(self):
-        self.guiIsReady.emit()
         self.update_system_names()
         self.choose_system(self.current_system)
 
@@ -86,11 +100,10 @@ class Viewmodel(QObject):
         if new_system in self.systemNames:
             self.current_system = new_system
             self.currentName = self.systemNames[new_system]
-            print(f'system CHANGED!@!! new_system = {new_system}')
+            self.switchSystems.emit(new_system)
 
     @pyqtSlot(str)
     def rename_system(self, new_name: str):
         self.config.set(self.current_system, 'name', value=new_name)
         self.update_system_names()
         self.choose_system(self.current_system)
-        print(f'system RENAMED, new_name = {new_name}')

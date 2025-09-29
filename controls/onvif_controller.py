@@ -5,7 +5,7 @@ from zeep import xsd
 from typing import Literal
 from config import Config
 from logs import MultiLogger
-from models import Command
+from models import Command, Slot, System
 
 
 class OnvifController(QThread):
@@ -20,10 +20,10 @@ class OnvifController(QThread):
 
     onvifChangeNotification = pyqtSignal(str)
 
-    def __init__(self, config: Config, logger: MultiLogger, system_id: str, slot: Literal['front', 'back']):
+    def __init__(self, config: Config, logger: MultiLogger, slot: Slot):
         super().__init__()
         self.config = config
-        self.system_id = system_id
+        self.system_id = 'system_1'
         self.slot = slot
         self.logger = logger.get_logger(f'onvif_{self.slot}')
         self.camera = None
@@ -49,6 +49,7 @@ class OnvifController(QThread):
             if self.image_settings:
                 self.is_online = True
                 self._set_initial_camera_settings()
+                self._get_rtsp()
                 self._send_change_notification()
                 self.logger.add_log('INFO', f'УСПЕШНОЕ ПОДКЛЮЧЕНИЕ')
         except Exception as e:
@@ -95,8 +96,21 @@ class OnvifController(QThread):
 
         self._send_image_settings()
 
+    def _get_rtsp(self):
+        profiles = self.media_service.GetProfiles()
+        profile = profiles[0]
+        stream_setup = {
+            'Stream': 'RTP-Unicast',
+            'Transport': {'Protocol': 'RTSP'}
+        }
 
-    def switch_system(self, new_system):
+        uri = self.media_service.GetStreamUri({'StreamSetup': stream_setup, 'ProfileToken': profile.token})
+        print(f'RTSP ==================== {uri['Uri'].strip()}')
+        uri = uri['Uri'].strip()
+        self.config.set(self.system_id, self.slot, 'camera', 'rtsp', value = uri)
+
+
+    def switch_system(self, new_system: System):
         self.system_id = new_system
         self.connect()
 

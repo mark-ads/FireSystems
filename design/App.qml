@@ -1,4 +1,3 @@
-
 import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
@@ -79,6 +78,7 @@ ApplicationWindow {
                             let systemName = viewmodel.systemNames[systemId]
                             systemMenu.close()
                             viewmodel.choose_system(systemId)
+                            controller.onSwitchSystems()
                         }
 
                         Text {

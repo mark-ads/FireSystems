@@ -54,13 +54,13 @@ class Config(QObject):
     def save(self):
         self._lock.lockForWrite()
         try:
-            with open(self.path, 'w') as f:
+            with open(self.path, 'w', encoding="utf-8") as f:
                 yaml.dump(self.settings.model_dump(mode="json"), f)
         finally:
             self._lock.unlock()
 
     def _save_unlocked(self):
-        with open(self.path, 'w') as f:
+        with open(self.path, 'w', encoding="utf-8") as f:
             yaml.dump(self.settings.model_dump(mode="json"), f)
 
     def use_defaults(self):

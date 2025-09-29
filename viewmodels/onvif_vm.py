@@ -1,6 +1,6 @@
 from controls.onvif_controller import OnvifController
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty, QVariant, QTimer
-from models import Command
+from models import Command, Slot
 from typing import Literal
 
 
@@ -45,11 +45,11 @@ class OnvifVM(QObject):
         self.feedback_timer_back = QTimer(self)
         self.feedback_timer_back.timeout.connect(self._check_changes_back)
 
-    @pyqtSlot()
-    def connect(self):
-        cmd_front = Command(target='front', command='connect')
+    @pyqtSlot(str)
+    def connect(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4']):
+        cmd_front = Command(target='front', command='switch_system', value=system)
         self.front.commands.put(cmd_front)
-        cmd_back = Command(target='back', command='connect')
+        cmd_back = Command(target='back', command='switch_system', value=system)
         self.back.commands.put(cmd_back)
 
     # -----------
@@ -133,7 +133,7 @@ class OnvifVM(QObject):
             self.backSaturationChanged.emit()
     # -----------
     @pyqtSlot(str, str)
-    def forward_command(self, slot: Literal['front', 'back'], command: str):
+    def forward_command(self, slot: Slot, command: str):
         cmd = Command(
             target=slot,
             command=command
@@ -144,7 +144,7 @@ class OnvifVM(QObject):
             self.back.add_command(cmd)
 
     @pyqtSlot(str, str, float)
-    def forward_float_command(self, slot: Literal['front', 'back'], command: str, value: float):
+    def forward_float_command(self, slot: Slot, command: str, value: float):
         cmd = Command(
             target=slot,
             command=command,
@@ -158,7 +158,7 @@ class OnvifVM(QObject):
         self._start_feedback_timer(slot)
 
     @pyqtSlot(str, str, int)
-    def forward_int_command(self, slot: Literal['front', 'back'], command: str, value: int):
+    def forward_int_command(self, slot: Slot, command: str, value: int):
         cmd = Command(
             target=slot,
             command=command,
@@ -172,7 +172,7 @@ class OnvifVM(QObject):
         self._start_feedback_timer(slot)
 
     @pyqtSlot(str, str, str)
-    def forward_str_command(self, slot: Literal['front', 'back'], command: str, value: str):
+    def forward_str_command(self, slot: Slot, command: str, value: str):
         cmd = Command(
             target=slot,
             command=command,
@@ -202,7 +202,7 @@ class OnvifVM(QObject):
         self.back.commands.put(Command(target='back', command='check_changes'))
 
     @pyqtSlot(str)
-    def update_current_params(self, slot: Literal['front', 'back']):
+    def update_current_params(self, slot: Slot):
         if slot == 'front':
             ip, b, c, s = self.front.get_current_params()
             self.frontIp = ip

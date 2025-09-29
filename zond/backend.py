@@ -38,7 +38,7 @@ class Backend(QObject):
         self.limit_switch_status = 0
         self.temperatures = [0, 0, 0, 0] 
         self.angle = 0
-        self.pressures = []
+        self.pressures = [0, 0, 0, 0]
         self.wp_temp = 0
         self.time_online = 0
 
@@ -75,9 +75,19 @@ class Backend(QObject):
 
         self.logger.add_log('DEBUG', f'{self.system_id}.[{self.slot}] создан.')
 
+    @pyqtSlot()
+    def init_on_gui(self):
+        if self.test_mode:
+            self.add_random()
+
+    @pyqtSlot()
+    def send_data(self):
+        self.send_mod_data()
+        self.logger.add_log('DEBUG', f'{self.system_id}.[{self.slot}] Свежие данные отправлены.')
+
     def handle_arduino_message(self, data: str) -> None:
         '''Получение и перенаправление дальше строки от Ардуино'''
-        self.is_online_timer.start(1000)
+        self.is_online_timer.start(2500)
         data = data.strip()
         self.logger.add_log('DEBUG', f'[{self.slot}]: ПАКЕТ: {data}')
         if data.startswith('MOD:'):
@@ -270,11 +280,6 @@ class Backend(QObject):
     def send_press_chart(self, data):
         self.hub.forward_press_chart(self.system_id, self.slot, data)
 
-    @pyqtSlot()
-    def init_on_gui(self):
-        if self.test_mode:
-            self.add_random()
-
     def add_random(self):
         for i in range(360):
             self.temps_charts['air'].append(round(random.uniform(25, 35), 2))
@@ -301,6 +306,7 @@ class Backend(QObject):
         self.zond_status = -1
         self.send_mod_data()
         self.logger.add_log('INFO', f'[{self.slot}] status = offline')
+        self.logs.append(f'[{get_time()}] Зонд не в сети')
 
 
 '''  MOD:0|0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0|0|31.46,30.82,30.88,31.01|0|10.96,11.09|31.13|171\r\n '''

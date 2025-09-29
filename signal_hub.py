@@ -1,6 +1,7 @@
 from typing import Dict, List, Literal
+from models import Slot, System
 from viewmodels.viewmodel import Viewmodel
-from PyQt5.QtCore import QObject, Qt, pyqtSignal, QThread
+from PyQt5.QtCore import QObject, Qt, pyqtSignal, QThread, pyqtSlot
 
 class SignalHub(QObject):
     '''
@@ -22,15 +23,20 @@ class SignalHub(QObject):
         self.forwardTempHistory.connect(self.vm.update_temp_history, Qt.QueuedConnection)
         self.forwardPressHistory.connect(self.vm.update_press_history, Qt.QueuedConnection)
 
-    def forward_to_vm(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4'], slot: Literal['front', 'back'], data: dict):
+    @pyqtSlot(str)
+    def switch_system(self, system: System):
+        self.current_system = system
+        print(f'[SIGNAL_HUB] Выбрана новая система: {system}')
+
+    def forward_to_vm(self, system: System, slot: Slot, data: dict):
         if system == self.current_system:
             self.forwardModMessage.emit(slot, data)
 
-    def forward_temp_chart(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4'], slot: Literal['front', 'back'], data: List):
+    def forward_temp_chart(self, system: System, slot: Slot, data: List):
         if system == self.current_system:
             self.forwardTempChart.emit(slot, data)
 
-    def forward_press_chart(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4'], slot: Literal['front', 'back'], data: list):
+    def forward_press_chart(self, system: System, slot: Slot, data: list):
         if system == self.current_system:
             self.forwardPressChart.emit(slot, data)
 

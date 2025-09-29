@@ -43,13 +43,13 @@ class Receiver(QObject):
             datagram, host, port = self.socket.readDatagram(self.socket.pendingDatagramSize())
             data = datagram.decode("utf-8", errors="ignore")
             sender_ip = host.toString()
-            #print(f"📩 Пришло от {sender_ip}:{port} → {data}")
         
-            if sender_ip in self.ip_map:
-                #self.logger.add_log('DEBUG', f'Принят пакет контроллера: {sender_ip}')
-                system_id, slot = self.ip_map[sender_ip]
-                tel = Telemetry(system_id, slot, data)
-                self.forwardTelemetry.emit(tel)
+            matches = [key for key, ip in self.ip_map.items() if ip == sender_ip]
+            if matches:
+                for system_id, slot in matches:
+                    self.logger.add_log('DEBUG', f'📩Принят пакет контроллера: {sender_ip}')
+                    tel = Telemetry(system_id, slot, data)
+                    self.forwardTelemetry.emit(tel)
             else:
                 self.logger.add_log('WARN', f'Принят НЕИЗВЕСТНЫЙ отправитель. {sender_ip}')
 
@@ -67,7 +67,7 @@ class Receiver(QObject):
                 try:
                     ip = self.config.get_str(system_id, slot, 'arduino', 'ip')
                     if ip:
-                        new_map[ip] = (system_id, slot)
+                        new_map[(system_id, slot)] = ip
                         self.logger.add_log('INFO', f'🔁 IP: {system_id}.{slot} = {ip}')
                 except Exception as e:
                     self.logger.add_log('WARN', f'⚠️ Ошибка получения IP {system_id}.{slot}: {e}')

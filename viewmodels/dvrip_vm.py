@@ -186,11 +186,11 @@ class DvripVM(QObject):
         self._back_flip = value
         self.backFlipChanged.emit()
 
-    @pyqtSlot()
-    def connect(self):
-        cmd_front = Command(target='front', command='connect')
+    @pyqtSlot(str)
+    def connect(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4']):
+        cmd_front = Command(target='front', command='switch_system', value=system)
         self.front.commands.put(cmd_front)
-        cmd_back = Command(target='back', command='connect')
+        cmd_back = Command(target='back', command='switch_system', value=system)
         self.back.commands.put(cmd_back)
 
     @pyqtSlot(str, str)

@@ -6,7 +6,7 @@ from zeep import xsd
 from typing import Literal
 from config import Config
 from logs import MultiLogger
-from models import Command
+from models import Command, Slot
 from zond.sender import UdpSender
 
 
@@ -23,10 +23,10 @@ class UdpController(QObject):
     udpChangeNotification = pyqtSignal(str)
     ipChanged = pyqtSignal(str, str)
 
-    def __init__(self, config: Config, logger: MultiLogger, socket: UdpSender, system_id: str, slot: Literal['front', 'back']):
+    def __init__(self, config: Config, logger: MultiLogger, socket: UdpSender, slot: Slot):
         super().__init__()
         self.config = config
-        self.system_id = system_id
+        self.system_id = 'system_1'
         self.slot = slot
         self.socket = socket
         self.logger = logger.get_logger(f'upd_{self.slot}')

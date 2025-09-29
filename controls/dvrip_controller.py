@@ -3,7 +3,7 @@ from config import Config
 from typing import Dict, Literal, Union
 from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 from queue import Queue
-from models import Command
+from models import Command, Slot
 from logs import MultiLogger
 
 
@@ -14,10 +14,10 @@ class DvripController(QThread):
     '''
     dvripChangeNotification = pyqtSignal(str)
 
-    def __init__(self, config: Config, logger: MultiLogger, system_id: str, slot: Literal['front', 'back']):
+    def __init__(self, config: Config, logger: MultiLogger, slot: Slot):
         super().__init__()
         self.config = config
-        self.system_id = system_id
+        self.system_id = 'system_1'
         self.slot = slot
         self.logger = logger.get_logger(f'dvrip_{self.slot}')
         self.camera = None
@@ -79,7 +79,7 @@ class DvripController(QThread):
                 self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'AudioEnable' : False}})
                 self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'BitRate' : 4096}}})
                 self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'BitRateControl' : 'CBR'}}})
-                self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'Compression' : 'H.264'}}})
+                self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'Compression' : 'H.265'}}})
                 self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'GOP' : 10}}})
                 self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'Quality' : 4}}})
                 self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'Resolution' : '1080P'}}})
@@ -140,6 +140,7 @@ class DvripController(QThread):
     def switch_system(self, new_system):
         self.system_id = new_system
         self.update_settings()
+        self.connect()
 
     def _check_ready(self) -> bool:
         if self.camera is None:

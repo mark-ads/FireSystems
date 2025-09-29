@@ -11,6 +11,10 @@ class CameraImageProvider(QQuickImageProvider):
         #print(f"[update_image] key={key} image size={image.size()}")
         self.images[key] = image
 
+    def clear_image(self, key: str):
+        """Очистка изображения для данного слота."""
+        if key in self.images:
+            del self.images[key]
 
     def requestImage(self, id, requestedSize):
         image = self.images.get(id)
