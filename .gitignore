@@ -373,5 +373,10 @@ FodyWeavers.xsd
 /.env
 /FireSystems.pyproj
 /test.py
-/gstreamer/lib/gstreamer-1.0
 /gstreamer
+/build/FireSystems
+/dist
+/vlc
+/FireSystems.spec
+/main1.py
+/main - Copy.py
