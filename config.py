@@ -177,7 +177,6 @@ class Config(QObject):
             self.logger.add_log('DEBUG', f'Изменения сохранены: {node}{path[-1]} = {value}')
         finally:
             self._lock.unlock()
-
     def set_sys(self, param: str, value: Union[int, float, bool, str]):
         '''
         Устанавливает новое значение для системных настроек

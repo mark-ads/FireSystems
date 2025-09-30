@@ -39,7 +39,7 @@ class Backend(QObject):
         self.temperatures = [0, 0, 0, 0] 
         self.angle = 0
         self.pressures = [0, 0, 0, 0]
-        self.wp_temp = 0
+        self.wp_overheat = False
         self.time_online = 0
 
         self.avg_temps = {
@@ -179,7 +179,7 @@ class Backend(QObject):
         if data != self.limit_switch_status:
             self.limit_switch_status = data
             self.logger.add_log('INFO', f'[{self.slot}] {limit_switch[data]}')
-            self.logs.append(f'[{get_time()}] {errors_map[i]}')
+            self.logs.append(f'[{get_time()}] {limit_switch[data]}')
 
     def _process_mod_temperatures(self, data: str) -> None:
         '''Обработка блока с температурами'''
@@ -203,7 +203,15 @@ class Backend(QObject):
 
     def _process_mod_arduino_temp(self, data: str) -> None:
         '''Обработка температуры микроконтроллера'''
-        self.wp_temp = float(data)
+        data = float(data)
+        if data >= 65.0 and not self.wp_overheat:
+            self.logger.add_log('INFO', f'[{self.slot}][⚠️Предупреждение] Температура контроллера выше 65°С.')
+            self.logs.append(f'[{get_time()}][⚠️Предупреждение] Температура контроллера выше 65°С.')
+            self.wp_overheat = True
+        elif data < 60.0 and self.wp_overheat:
+            self.logger.add_log('INFO', f'[{self.slot}] Температура контроллера остыла ниже 60°С.')
+            self.logs.append(f'[{get_time()}] Температура контроллера остыла ниже 60°С.')            
+            self.wp_overheat = False
 
     def _process_mod_worktime(self, data: str) -> None:
         data = data.strip()
@@ -217,6 +225,7 @@ class Backend(QObject):
         data['temps'] = self.temperatures
         data['angle'] = self.angle
         data['pressures'] = self.pressures
+        data['limit_switch'] = self.limit_switch_status
         self.hub.forward_to_vm(self.system_id, self.slot, data)
         self._proccess_for_chart()
 

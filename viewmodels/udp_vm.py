@@ -19,6 +19,7 @@ class UdpVM(QObject):
     frontStateChanged = pyqtSignal()
     frontLogsChanged = pyqtSignal()
     frontAngleChanged = pyqtSignal()
+    frontLimitSwitchChanged = pyqtSignal()
     frontTempsChanged = pyqtSignal()
     frontPressChanged = pyqtSignal()
     frontTempChartChanged = pyqtSignal()
@@ -32,6 +33,7 @@ class UdpVM(QObject):
     backStateChanged = pyqtSignal()
     backLogsChanged = pyqtSignal()
     backAngleChanged = pyqtSignal()
+    backLimitSwitchChanged = pyqtSignal()
     backTempsChanged = pyqtSignal()
     backPressChanged = pyqtSignal()
     backTempChartChanged = pyqtSignal()
@@ -54,6 +56,8 @@ class UdpVM(QObject):
         self._front_logs = deque()
         self._front_temps = [0.0, 0.0, 0.0, 0.0]
         self._front_press = [0.0, 0.0]
+        self._front_limit_switch = 0
+
         self._front_temp_chart = []
         self._front_press_chart = []
         self._front_temp_history = []
@@ -65,6 +69,8 @@ class UdpVM(QObject):
         self._back_logs = deque()
         self._back_temps = [0.0, 0.0, 0.0, 0.0]
         self._back_press = [0.0, 0.0]
+        self._back_limit_switch = 0
+
         self._back_temp_chart = []
         self._back_press_chart = []
         self._back_temp_history = []
@@ -137,6 +143,16 @@ class UdpVM(QObject):
         if self._front_press != value:
             self._front_press = value
             self.frontPressChanged.emit()
+
+    @pyqtProperty(int, notify=frontLimitSwitchChanged)
+    def frontLimitSwitch(self):
+        return self._front_limit_switch
+
+    @frontLimitSwitch.setter
+    def frontLimitSwitch(self, value):
+        if self._front_limit_switch != value:
+            self._front_limit_switch = value
+            self.frontLimitSwitchChanged.emit()
 
     @pyqtProperty(list, notify=frontTempChartChanged)
     def frontTempChart(self):
@@ -244,6 +260,16 @@ class UdpVM(QObject):
         if self._back_press != value:
             self._back_press = value
             self.backPressChanged.emit()
+
+    @pyqtProperty(int, notify=backLimitSwitchChanged)
+    def backLimitSwitch(self):
+        return self._back_limit_switch
+
+    @backLimitSwitch.setter
+    def backLimitSwitch(self, value):
+        if self._back_limit_switch != value:
+            self._back_limit_switch = value
+            self.backLimitSwitchChanged.emit()
 
     @pyqtProperty(QVariant, notify=backTempChartChanged)
     def backTempChart(self):

@@ -50,13 +50,6 @@ Item {
                 height: parent.height
                 fillMode: Image.PreserveAspectFit
                 cache: false
-                Connections {
-                    target: stream_front
-                    function onFrameReady() {
-                        frontStream.source = ""
-                        frontStream.source = "image://camera/front"
-                    }
-                }
             }
 
             Rectangle {
@@ -242,15 +235,69 @@ Item {
                             font.bold: true
                         }
                     }
-
-
-
-
                 }
-            }
 
-            Connections {
-                target: stream_front
+                Rectangle {
+                    id: frontZondIndicator
+                    x: 775
+                    y: 3
+                    width: 175
+                    height: 24
+                    color: "#00d3d3d3"
+                    radius: 6
+                    border.width: 2
+                    property int state: viewmodel.udp.frontState
+                    property int limitSwitch: viewmodel.udp.frontLimitSwitch
+                    visible: frontZondIndicator.state !== -1
+                    Rectangle {
+                        id: frontZondOutIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: frontZondIndicator.limitSwitch === 0
+                        color: "#94f7ff"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: frontZondInOutIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            text: "ЗОНД НЕ В ТОПКЕ"
+                            font.pixelSize: 18
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        id: frontZondInIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: frontZondIndicator.limitSwitch === 1
+                        color: "#90ee90"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: frontZondInIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            visible: true
+                            text: "ЗОНД В ТОПКЕ"
+                            font.pixelSize: 18
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+                }
             }
         }
 
@@ -289,13 +336,6 @@ Item {
                 height: parent.height
                 fillMode: Image.PreserveAspectFit
                 cache: false
-                Connections {
-                    target: stream_back
-                    function onFrameReady() {
-                        backStream.source = ""
-                        backStream.source = "image://camera/back"
-                    }
-                }
             }
 
             Rectangle {
@@ -428,7 +468,7 @@ Item {
                     }
 
                     Rectangle {
-                        id: backtErrorIndicator
+                        id: backErrorIndicator
                         x: 0
                         y: 0
                         width: 175
@@ -477,10 +517,69 @@ Item {
                         }
                     }
                 }
-            }
 
-            Connections {
-                target: stream_back
+                Rectangle {
+                    id: backZondIndicator
+                    x: 10
+                    y: 3
+                    width: 175
+                    height: 24
+                    color: "#00d3d3d3"
+                    radius: 6
+                    border.width: 2
+                    property int state: viewmodel.udp.backState
+                    property int limitSwitch: viewmodel.udp.backLimitSwitch
+                    visible: backZondIndicator.state !== -1
+                    Rectangle {
+                        id: backZondOutIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: backZondIndicator.limitSwitch === 0
+                        color: "#94f7ff"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: backZondOutIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            visible: true
+                            text: "ЗОНД НЕ В ТОПКЕ"
+                            font.pixelSize: 18
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+
+                    Rectangle {
+                        id: backZondInIndicator
+                        x: 0
+                        y: 0
+                        width: 175
+                        height: 24
+                        visible: backZondIndicator.limitSwitch === 1
+                        color: "#90ee90"
+                        radius: 6
+                        border.width: 2
+                        Text {
+                            id: backZondInIndicatorText
+                            x: 0
+                            y: 0
+                            width: 175
+                            height: 23
+                            visible: true
+                            text: "ЗОНД В ТОПКЕ"
+                            font.pixelSize: 18
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.bold: true
+                        }
+                    }
+                }
             }
         }
     }
