@@ -9,6 +9,8 @@ Item {
     property var dvrip: viewmodel.dvrip
     property var onvif: viewmodel.onvif
     property var udp: viewmodel.udp
+    property var navPanelRef
+    property var rootRef
 
     Rectangle {
         id: mainRectangle
@@ -1564,6 +1566,14 @@ Item {
                 }
 
                 hoverEnabled: true
+                onClicked: {
+                    controller.remove_system();
+                    viewmodel.update_system_names()
+                    navPanelRef.updateSelection(0)
+                    viewmodel.choose_system('system_1')
+                    controller.switch_system('system_1')
+
+                }
             }
 
             Rectangle {

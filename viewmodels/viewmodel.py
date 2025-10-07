@@ -1,5 +1,6 @@
 from PyQt5.QtQuick import QQuickItem
 from camera.camera_stream import VideoStream
+from camera.vlc import VlcPlayer
 from config import Config
 from controls.onvif_controller import OnvifController
 from controls.dvrip_controller import DvripController
@@ -24,7 +25,7 @@ class Viewmodel(QObject):
                  onvif_front: OnvifController, onvif_back: OnvifController, 
                  dvrip_front: DvripController, dvrip_back: DvripController,
                  udp_front: UdpController, udp_back: UdpController,
-                 stream_front: VideoStream, stream_back: VideoStream
+                 front_player: VlcPlayer, back_player: VlcPlayer
                  ):
         super().__init__()
         self.config = config
@@ -34,15 +35,15 @@ class Viewmodel(QObject):
         self._dvrip = DvripVM(dvrip_front, dvrip_back)
         self._udp = UdpVM(udp_front, udp_back)
 
-        self._front_stream = stream_front
-        self._back_stream = stream_back
-
         self._system_names = {}
         self._current_name = None
 
+        self._front_player = front_player
+        self._back_player = back_player
+
         self.switchSystems.connect(self._onvif.connect)
         self.switchSystems.connect(self._dvrip.connect)
-        self.switchSystems.connect(self._udp.send_params_to_gui)
+        self.switchSystems.connect(self._udp.connect)
 
     @pyqtProperty(QObject, constant=True)
     def onvif(self):
@@ -56,13 +57,13 @@ class Viewmodel(QObject):
     def udp(self):
         return self._udp
 
-    @pyqtProperty(QQuickItem, constant=True)
-    def frontStream(self):
-        return self._front_stream
+    @pyqtProperty(QObject, constant=True)
+    def frontPlayer(self):
+        return self._front_player
 
-    @pyqtProperty(QQuickItem, constant=True)
-    def backStream(self):
-        return self._back_stream
+    @pyqtProperty(QObject, constant=True)
+    def backPlayer(self):
+        return self._back_player
 
     @pyqtSlot()
     def onGuiReady(self):

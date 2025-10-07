@@ -1,7 +1,6 @@
 from controls.dvrip_controller import DvripController
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty, QVariant, QTimer
-from models import Command
-from typing import Literal
+from models import Command, Slot, System
 
 
 class DvripVM(QObject):
@@ -187,14 +186,14 @@ class DvripVM(QObject):
         self.backFlipChanged.emit()
 
     @pyqtSlot(str)
-    def connect(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4']):
+    def connect(self, system: System):
         cmd_front = Command(target='front', command='switch_system', value=system)
         self.front.commands.put(cmd_front)
         cmd_back = Command(target='back', command='switch_system', value=system)
         self.back.commands.put(cmd_back)
 
     @pyqtSlot(str, str)
-    def forward_command(self, slot: Literal['front', 'back'], command: str):
+    def forward_command(self, slot: Slot, command: str):
         cmd = Command(
             target=slot,
             command=command
@@ -206,7 +205,7 @@ class DvripVM(QObject):
         self._start_feedback_timer(slot)
 
     @pyqtSlot(str, str, int)
-    def forward_int_command(self, slot: Literal['front', 'back'], command: str, value: int):
+    def forward_int_command(self, slot: Slot, command: str, value: int):
         cmd = Command(
             target=slot,
             command=command,
@@ -220,7 +219,7 @@ class DvripVM(QObject):
         self._start_feedback_timer(slot)
 
     @pyqtSlot(str, str, str)
-    def forward_str_command(self, slot: Literal['front', 'back'], command: str, value: str):
+    def forward_str_command(self, slot: Slot, command: str, value: str):
         cmd = Command(
             target=slot,
             command=command,
@@ -234,7 +233,7 @@ class DvripVM(QObject):
         self._start_feedback_timer(slot)
 
     @pyqtSlot(str, str, bool)
-    def forward_bool_command(self, slot: Literal['front', 'back'], command: str, value: bool):
+    def forward_bool_command(self, slot: Slot, command: str, value: bool):
         cmd = Command(
             target=slot,
             command=command,
@@ -265,7 +264,7 @@ class DvripVM(QObject):
 
 
     @pyqtSlot(str)
-    def update_current_params(self, slot: Literal['front', 'back']):
+    def update_current_params(self, slot: Slot):
         if slot == 'front':
             fps, e, g, ag, ae, m, f = self.front.get_current_params()
             self.frontFps = fps

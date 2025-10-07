@@ -1,8 +1,6 @@
 from controls.onvif_controller import OnvifController
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty, QVariant, QTimer
-from models import Command, Slot
-from typing import Literal
-
+from models import Command, Slot, System
 
 class OnvifVM(QObject):
     '''
@@ -46,7 +44,7 @@ class OnvifVM(QObject):
         self.feedback_timer_back.timeout.connect(self._check_changes_back)
 
     @pyqtSlot(str)
-    def connect(self, system: Literal['system_1', 'system_2', 'system_3', 'system_4']):
+    def connect(self, system: System):
         cmd_front = Command(target='front', command='switch_system', value=system)
         self.front.commands.put(cmd_front)
         cmd_back = Command(target='back', command='switch_system', value=system)

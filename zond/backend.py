@@ -3,11 +3,12 @@ from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, QTimer
 from typing import Literal, Dict
 from config import Config
 from logs import MultiLogger
+from models import Slot
 from signal_hub import SignalHub
 from .dicts import errors_map, mods, limit_switch, temperature_map, pressure_map
 from datetime import datetime
 import random
-import time
+
 
 
 def get_time():
@@ -22,7 +23,7 @@ class Backend(QObject):
 
     updateSettings = pyqtSignal()
 
-    def __init__(self, config: Config, logger: MultiLogger, hub: SignalHub, system_id: str, slot: Literal['front', 'back']):
+    def __init__(self, config: Config, logger: MultiLogger, hub: SignalHub, system_id: str, slot: Slot):
         super().__init__()
         self.logger = logger
         if slot not in ('front', 'back'):

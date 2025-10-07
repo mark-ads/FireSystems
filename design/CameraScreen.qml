@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import QtQuick.Controls 2.15
+import VLCQt 1.1
 
 Item {
     id: root
@@ -22,6 +23,18 @@ Item {
             height: 540
             color: "#cccccc"
             border.width: 1
+
+            VlcVideoOutput {
+                z: 10
+                anchors.fill: parent
+                source: VlcPlayer {
+                    id: frontPlayer
+                    objectName: "frontPlayer"
+                    autoplay: true
+                }
+                visible: viewmodel.frontPlayer.onlineStatus === true
+            }
+
             Rectangle {
                 id: frontNoSignal
                 x: 360
@@ -43,14 +56,6 @@ Item {
                 }
             }
 
-            Image {
-                id: frontStream
-                z: 10
-                width: parent.width
-                height: parent.height
-                fillMode: Image.PreserveAspectFit
-                cache: false
-            }
 
             Rectangle {
                 id: frontTitle
@@ -246,16 +251,14 @@ Item {
                     color: "#00d3d3d3"
                     radius: 6
                     border.width: 2
-                    property int state: viewmodel.udp.frontState
-                    property int limitSwitch: viewmodel.udp.frontLimitSwitch
-                    visible: frontZondIndicator.state !== -1
+                    visible: viewmodel.udp.frontState !== -1
                     Rectangle {
                         id: frontZondOutIndicator
                         x: 0
                         y: 0
                         width: 175
                         height: 24
-                        visible: frontZondIndicator.limitSwitch === 0
+                        visible: viewmodel.udp.frontLimitSwitch === 0
                         color: "#94f7ff"
                         radius: 6
                         border.width: 2
@@ -279,7 +282,7 @@ Item {
                         y: 0
                         width: 175
                         height: 24
-                        visible: frontZondIndicator.limitSwitch === 1
+                        visible: viewmodel.udp.frontLimitSwitch === 1
                         color: "#90ee90"
                         radius: 6
                         border.width: 2
@@ -308,6 +311,16 @@ Item {
             height: 540
             color: "#cccccc"
             border.width: 1
+            VlcVideoOutput {
+                z: 10
+                anchors.fill: parent
+                source: VlcPlayer {
+                    id: backPlayer
+                    objectName: "backPlayer"
+                    autoplay: true
+                }
+                visible: viewmodel.backPlayer.onlineStatus === true
+            }
             Rectangle {
                 id: backNoSignal
                 x: 360
@@ -317,6 +330,7 @@ Item {
                 color: "#ffffff"
                 radius: 4
                 border.width: 3
+
                 Text {
                     id: backNoSignalText
                     width: 240
@@ -327,15 +341,6 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                     font.bold: true
                 }
-            }
-
-            Image {
-                id: backStream
-                z: 10
-                width: parent.width
-                height: parent.height
-                fillMode: Image.PreserveAspectFit
-                cache: false
             }
 
             Rectangle {
@@ -527,16 +532,14 @@ Item {
                     color: "#00d3d3d3"
                     radius: 6
                     border.width: 2
-                    property int state: viewmodel.udp.backState
-                    property int limitSwitch: viewmodel.udp.backLimitSwitch
-                    visible: backZondIndicator.state !== -1
+                    visible: viewmodel.udp.backState !== -1
                     Rectangle {
                         id: backZondOutIndicator
                         x: 0
                         y: 0
                         width: 175
                         height: 24
-                        visible: backZondIndicator.limitSwitch === 0
+                        visible: viewmodel.udp.backLimitSwitch === 0
                         color: "#94f7ff"
                         radius: 6
                         border.width: 2
@@ -561,7 +564,7 @@ Item {
                         y: 0
                         width: 175
                         height: 24
-                        visible: backZondIndicator.limitSwitch === 1
+                        visible: viewmodel.udp.backLimitSwitch === 1
                         color: "#90ee90"
                         radius: 6
                         border.width: 2

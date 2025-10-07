@@ -1,6 +1,6 @@
 from controls.udp_controller import UdpController
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty, QVariant
-from models import Command
+from models import Command, Slot, System
 from typing import Dict, Literal
 from collections import deque
 
@@ -76,12 +76,14 @@ class UdpVM(QObject):
         self._back_temp_history = []
         self._back_press_history = []
 
-    @pyqtSlot()
-    def send_params_to_gui(self):
+    @pyqtSlot(str)
+    def connect(self, system: System):
         self.frontStateChanged.emit()
         self.backStateChanged.emit()
-        self.update_settings('front')
-        self.update_settings('back')
+        cmd_front = Command(target='front', command='switch_system', value=system)
+        self.front.add_command(cmd_front)
+        cmd_back = Command(target='back', command='switch_system', value=system)
+        self.back.add_command(cmd_back)        
 
     # -----------
     @pyqtProperty(QVariant, notify=frontSettingsChanged)
@@ -150,9 +152,8 @@ class UdpVM(QObject):
 
     @frontLimitSwitch.setter
     def frontLimitSwitch(self, value):
-        if self._front_limit_switch != value:
-            self._front_limit_switch = value
-            self.frontLimitSwitchChanged.emit()
+        self._front_limit_switch = value
+        self.frontLimitSwitchChanged.emit()
 
     @pyqtProperty(list, notify=frontTempChartChanged)
     def frontTempChart(self):
@@ -267,9 +268,8 @@ class UdpVM(QObject):
 
     @backLimitSwitch.setter
     def backLimitSwitch(self, value):
-        if self._back_limit_switch != value:
-            self._back_limit_switch = value
-            self.backLimitSwitchChanged.emit()
+        self._back_limit_switch = value
+        self.backLimitSwitchChanged.emit()
 
     @pyqtProperty(QVariant, notify=backTempChartChanged)
     def backTempChart(self):
@@ -320,7 +320,7 @@ class UdpVM(QObject):
 
     # -----------
     @pyqtSlot(str, str)
-    def forward_command(self, slot: Literal['front', 'back'], command: str):
+    def forward_command(self, slot: Slot, command: str):
         cmd = Command(
             target=slot,
             command=command
@@ -331,7 +331,7 @@ class UdpVM(QObject):
             self.back.add_command(cmd)
 
     @pyqtSlot(str, str, float)
-    def forward_float_command(self, slot: Literal['front', 'back'], command: str, value: float):
+    def forward_float_command(self, slot: Slot, command: str, value: float):
         cmd = Command(
             target=slot,
             command=command,
@@ -344,7 +344,7 @@ class UdpVM(QObject):
             self.back.add_command(cmd)
 
     @pyqtSlot(str, str, int)
-    def forward_int_command(self, slot: Literal['front', 'back'], command: str, value: int):
+    def forward_int_command(self, slot: Slot, command: str, value: int):
         cmd = Command(
             target=slot,
             command=command,
@@ -357,7 +357,7 @@ class UdpVM(QObject):
             self.back.add_command(cmd)
 
     @pyqtSlot(str, str, str)
-    def forward_str_command(self, slot: Literal['front', 'back'], command: str, value: str):
+    def forward_str_command(self, slot: Slot, command: str, value: str):
         cmd = Command(
             target=slot,
             command=command,
@@ -370,23 +370,25 @@ class UdpVM(QObject):
             self.back.add_command(cmd)
 
     @pyqtSlot(str, dict)
-    def update_mod_params(self, slot: Literal['front', 'back'], data: Dict):
+    def update_mod_params(self, slot: Slot, data: Dict):
         if slot == 'front':
             self.frontState = data['status']
             self.frontLogs = data['logs']
             self.frontAngle = data['angle']
             self.frontTemps = data['temps']
             self.frontPress = data['pressures']
+            self.frontLimitSwitch = data['limit_switch']
         else:
             self.backState = data['status']
             self.backLogs = data['logs']
             self.backAngle = data['angle']
             self.backTemps = data['temps']
             self.backPress = data['pressures']
+            self.backLimitSwitch = data['limit_switch']
 
 
     @pyqtSlot(str, list)
-    def update_temp_chart(self, slot: Literal['front', 'back'], data: list):
+    def update_temp_chart(self, slot: Slot, data: list):
         if slot == 'front':
             self.frontTempChart = data
         else:
@@ -394,7 +396,7 @@ class UdpVM(QObject):
         
 
     @pyqtSlot(str, list)
-    def update_press_chart(self, slot: Literal['front', 'back'], data: list):
+    def update_press_chart(self, slot: Slot, data: list):
         if slot == 'front':
             self.frontPressChart = data
         else:
@@ -404,7 +406,7 @@ class UdpVM(QObject):
 
 
     @pyqtSlot(str, dict)
-    def update_temp_history(self, slot: Literal['front', 'back'], data: Dict[str, list]):
+    def update_temp_history(self, slot: Slot, data: Dict[str, list]):
         if slot == 'front':
             self.frontTempHistory = data
         else:
@@ -412,14 +414,14 @@ class UdpVM(QObject):
         
 
     @pyqtSlot(str, dict)
-    def update_press_history(self, slot: Literal['front', 'back'], data: Dict[str, list]):
+    def update_press_history(self, slot: Slot, data: Dict[str, list]):
         if slot == 'front':
             self.frontPressHistory = data
         else:
             self.backPressHistory = data
 
     @pyqtSlot(str)
-    def update_settings(self, slot: Literal['front', 'back']):
+    def update_settings(self, slot: Slot):
         if slot == 'front':
             ip, sys_ip, water_pressure, air_pressure, air_temp, water_temp, out_temp, wp_temp = self.front.get_current_params()
             self.frontSettings = {

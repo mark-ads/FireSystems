@@ -6,7 +6,7 @@ import QtQuick.Window 2.15
 ApplicationWindow {
     id: root
     width: 1920
-    height: Math.min(Screen.height, 1080)
+    height: 1080
     visible: true
     title: "FireSystems"
     property int currentScreen: 0
@@ -19,7 +19,11 @@ ApplicationWindow {
 
         SystemScreen {}
         TechScreen {}
-        SettingsScreen {}
+        SettingsScreen {
+            id: settingsScreen
+            navPanelRef: navPanel
+            rootRef: root
+        }
     }
 
     CameraScreen {
@@ -27,7 +31,6 @@ ApplicationWindow {
         x: 0
         y: 0
         z: 10
-
     }
 
     NavigationPanel {
@@ -41,6 +44,7 @@ ApplicationWindow {
         onScreenSelected: root.currentScreen = index
         activeIndex: root.currentScreen
     }
+
     Popup {
         id: systemMenu
         x: 870
@@ -63,7 +67,10 @@ ApplicationWindow {
 
             Repeater {
                 id: systemRepeater
-                model: Object.keys(viewmodel.systemNames)
+                model: (typeof viewmodel !== "undefined" && viewmodel.systemNames)
+                       ? Object.keys(viewmodel.systemNames)
+                       : []
+
                 delegate: Rectangle {
                     width: 155
                     height: 50
@@ -75,58 +82,58 @@ ApplicationWindow {
                         anchors.fill: parent
                         onClicked: {
                             let systemId = modelData
-                            let systemName = viewmodel.systemNames[systemId]
                             systemMenu.close()
                             viewmodel.choose_system(systemId)
-                            controller.onSwitchSystems()
+                            controller.switch_system(systemId)
                         }
+                    }
 
-                        Text {
-                            text: viewmodel.systemNames[modelData]
-                            anchors.centerIn: parent
-                            font.pointSize: 12
-                            color: "black"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                        }
+                    Text {
+                        anchors.centerIn: parent
+                        font.pointSize: 12
+                        color: "black"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        text: viewmodel.systemNames[modelData]
                     }
                 }
             }
 
-            Loader {
-                id: createSystemLoader
-                active: Object.keys(viewmodel.systemNames).length < 4
-                sourceComponent: createSystemButton
-            }
-
-            Component {
+            Rectangle {
                 id: createSystemButton
-                Rectangle {
-                    width: 155
-                    height: 50
-                    border.color: "#cccccc"
-                    border.width: 1
-                    color: "white"
+                width: 155
+                height: visible ? 50 : 0
+                visible: (typeof viewmodel !== "undefined" && Object.keys(viewmodel.systemNames).length < 4)
+                border.color: "#cccccc"
+                border.width: 1
+                color: "white"
 
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            console.log("Создание новой системы")
-                            systemMenu.close()
-                            // вызов логики создания системы
-                        }
+                Behavior on height { NumberAnimation { duration: 100 } }
 
-                        Text {
-                            text: "+\n(Создать систему)"
-                            anchors.centerIn: parent
-                            font.pointSize: 10
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            color: "black"
-                        }
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        controller.add_new_system()
+                        viewmodel.update_system_names()
                     }
+
+                    Text {
+                        text: "+\n(Создать систему)"
+                        anchors.centerIn: parent
+                        font.pointSize: 10
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        color: "black"
+                    }
+                }
+
+            Connections {
+                target: viewmodel
+                function onNamesUpdated() {
+                    systemRepeater.model = Object.keys(viewmodel.systemNames)
                 }
             }
         }
     }
-    }
+}
+}

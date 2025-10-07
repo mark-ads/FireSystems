@@ -2,7 +2,7 @@ from queue import Queue
 from PyQt5.QtCore import QObject, Qt, pyqtSlot, pyqtSignal, QThread
 from config import Config
 from logs import MultiLogger
-from models import Telemetry
+from models import System, Telemetry
 from signal_hub import SignalHub
 from .backend import Backend
 from .receiver import Receiver
@@ -53,6 +53,7 @@ class SystemsController(QThread):
         self.telemetry_queue = Queue()
         self.logger = logger.get_logger('systems_controller')
         self._running = True
+        self.system_id = 'system_1'
 
         self.systems = {
             name: self.factory.create_system(name)
@@ -88,13 +89,71 @@ class SystemsController(QThread):
     def onGuiReady(self):
         self.guiIsReady.emit()
 
-    @pyqtSlot()
-    def onSwitchSystems(self):
-        self.logger.add_log('WARN', f'Выбрана другая система. Отправляем новые данные.')
+    @pyqtSlot(str)
+    def switch_system(self, system: System):
+        self.logger.add_log('WARN', f'Выбрана {system}. Отправляем новые данные.')
+        self.system_id = system
         self.updateData.emit()
 
     @pyqtSlot()
     def update_settings(self):
+        self.receiver.update_settings()
+
+    @pyqtSlot()
+    def add_new_system(self):
+        new_system_id = self.config.add_system()
+        new_system = self.factory.create_system(new_system_id)
+        self.systems[new_system_id] = new_system
+        setattr(self, new_system_id, new_system)
+        self.guiIsReady.connect(new_system.front.init_on_gui)
+        self.guiIsReady.connect(new_system.back.init_on_gui)
+        new_system.front.updateSettings.connect(self.receiver.update_settings)
+        new_system.back.updateSettings.connect(self.receiver.update_settings)
+        self.updateData.connect(new_system.front.send_data)
+        self.updateData.connect(new_system.back.send_data)
+        self.sendHistory.connect(new_system.front.send_history)
+        self.sendHistory.connect(new_system.back.send_history)
+        self.receiver.update_settings()
+
+    @pyqtSlot()
+    def remove_system(self):
+        if self.system_id not in self.systems:
+            self.logger.add_log('WARN', f'Система {self.system_id} не найдена для удаления')
+            return
+
+        system_to_remove = self.systems[self.system_id]
+
+        # 1. Останавливаем фронт и бэк (таймеры, фоновые процессы)
+        try:
+            system_to_remove.front.stop()
+            system_to_remove.back.stop()
+        except Exception as e:
+            self.logger.add_log('ERROR', f'Ошибка при остановке бекендов: {e}')
+
+        # 2. Отсоединяем сигналы фронт и бэк
+        try:
+            self.guiIsReady.disconnect(system_to_remove.front.init_on_gui)
+            self.guiIsReady.disconnect(system_to_remove.back.init_on_gui)
+            self.updateData.disconnect(system_to_remove.front.send_data)
+            self.updateData.disconnect(system_to_remove.back.send_data)
+            self.sendHistory.disconnect(system_to_remove.front.send_history)
+            self.sendHistory.disconnect(system_to_remove.back.send_history)
+            system_to_remove.front.updateSettings.disconnect(self.receiver.update_settings)
+            system_to_remove.back.updateSettings.disconnect(self.receiver.update_settings)
+        except Exception as e:
+            self.logger.add_log('ERROR', f'Ошибка при отключении сигналов: {e}')
+
+        # 3. Удаляем из словаря и атрибутов
+        del self.systems[self.system_id]
+        if hasattr(self, self.system_id):
+            delattr(self, self.system_id)
+
+        # 4. Удаляем из конфигурации
+        self.config.remove_system(self.system_id)
+
+        self.logger.add_log('INFO', f'Система {self.system_id} удалена')
+
+        # 5. Обновляем receiver
         self.receiver.update_settings()
 
     def run(self):

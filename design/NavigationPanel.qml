@@ -196,16 +196,16 @@ Rectangle {
         }
     }
 
+    function updateSelection(index) {
+        activeIndex = index
+        screenSelected(index)
+    }
+
     ColumnLayout {
         id: buttonsColumn
         x: 0
         y: 120
         spacing: 0
-
-        function updateSelection(index) {
-            activeIndex = index
-            screenSelected(index)
-        }
 
         TabButton {
             id: systemButton
@@ -239,14 +239,18 @@ Rectangle {
         }
 
 
-        TabButton {
+        Button {
             id: termButton
             checkable: true
             checked: false
             Layout.preferredWidth: 180
             Layout.preferredHeight: 60
 
-
+            onCheckedChanged: {
+                var value = termButton.checked ? 0 : 1
+                viewmodel.dvrip.forward_int_command('front', 'set_ircut', value)
+                viewmodel.dvrip.forward_int_command('back', 'set_ircut', value)
+            }
 
             background: Rectangle {
                 color: termButton.checked ? "#cccccc" : "#ffffff"
@@ -268,7 +272,7 @@ Rectangle {
         TabButton {
             id: techButton
             checkable: true
-            checked: panel.activeIndex === 1
+            checked: false
             Layout.preferredWidth: 180
             Layout.preferredHeight: 60
 

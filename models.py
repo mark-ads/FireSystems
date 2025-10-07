@@ -21,15 +21,16 @@ class CameraConfig(BaseModel):
     login: str = 'admin'
     password: str = ''
     fps: int = 25
-    auto_gain: int = 1
-    manual_exposure: bool = True
+    auto_gain: int = 0
+    manual_exposure: bool = False
     gain: int = 1
-    exposure: int = 1
+    exposure: int = 0
     brightness: float = 35.0
     contrast: float = 32.0
     colorsaturation: float = 34.0
     flip: bool = False
     mirror: bool = False
+    ircut: int = 0
 
 class ZondConfig(BaseModel):
     arduino: ArduinoConfig = Field(default_factory=ArduinoConfig)

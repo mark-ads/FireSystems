@@ -26,7 +26,6 @@ class SignalHub(QObject):
     @pyqtSlot(str)
     def switch_system(self, system: System):
         self.current_system = system
-        print(f'[SIGNAL_HUB] Выбрана новая система: {system}')
 
     def forward_to_vm(self, system: System, slot: Slot, data: dict):
         if system == self.current_system:

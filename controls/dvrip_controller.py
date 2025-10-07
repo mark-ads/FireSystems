@@ -77,11 +77,11 @@ class DvripController(QThread):
         if self.camera.login():
             try:
                 self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'AudioEnable' : False}})
-                self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'BitRate' : 4096}}})
+                self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'BitRate' : 1996}}})
                 self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'BitRateControl' : 'CBR'}}})
                 self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'Compression' : 'H.265'}}})
-                self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'GOP' : 10}}})
-                self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'Quality' : 4}}})
+                self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'GOP' : 2}}})
+                self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'Quality' : 3}}})
                 self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'Resolution' : '1080P'}}})
                 self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'Video' : { 'VirtualGOP' : 0}}})
                 self.camera.set_info('Simplify.Encode.[0]', { 'MainFormat' : { 'VideoEnable' : True}})
@@ -344,6 +344,12 @@ class DvripController(QThread):
         if result:
             self.config.set(self.system_id, self.slot, 'camera', 'flip', value=enabled)
             self.flip = enabled
+
+    def set_ircut(self, value: int):
+        if not self._check_ready() and self.ircut is None:
+            self.logger.add_log('WARN', f'self.ircut = {self.flip}')
+            return
+        result = self._send_camera_command('flip', 'Camera.Param.[0]', ['IrcutSwap'], value, 'ircut')
 
     def run(self):
         self.logger.add_log('DEBUG', f'Ждем команду')

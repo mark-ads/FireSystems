@@ -27,6 +27,7 @@ class OnvifController(QThread):
         self.slot = slot
         self.logger = logger.get_logger(f'onvif_{self.slot}')
         self.camera = None
+        self.ip = None
         self.disconnect()
 
         self.commands = Queue()
@@ -35,8 +36,8 @@ class OnvifController(QThread):
         self.wait_for_command()
 
     def connect(self):
-        self.disconnect()
         self._update_settings()
+        self.disconnect()
         try:
             self.camera = ONVIFCamera(self.ip, self.port, self.login, self.password)
             self.media_service = self.camera.create_media_service()
