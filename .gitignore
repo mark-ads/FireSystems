@@ -376,7 +376,9 @@ FodyWeavers.xsd
 /gstreamer
 /build/FireSystems
 /dist
-/vlc
 /FireSystems.spec
 /main1.py
 /main - Copy.py
+/vlc/plugins
+/vlc/libvlc.dll
+/vlc/libvlccore.dll
