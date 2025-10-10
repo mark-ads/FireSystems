@@ -14,8 +14,10 @@ class OnvifController(QThread):
     В начале приложения создается 2 потока данного класса, на каждую сторону.
     После создания, потоки начинают ждать комманду.
     Когда GUI готов - OnvifVM помещает команду на подключение в очередь.
-    При подключении применяет начальные настройки из конфиг.
-    Содержит в себе таймер для отложенной проверки и синхронизации параметров с камерой.
+    Класс подключается по протоколу к камере и получает актуальную RTSP-ссылку.
+    При подключении отправляет на камеру настройки из конфига.
+    
+    После подключения пользователь может управлять настройками камеры через протокол ONVIF.
     '''
 
     onvifChangeNotification = pyqtSignal(str)
@@ -98,6 +100,8 @@ class OnvifController(QThread):
         self._send_image_settings()
 
     def _get_rtsp(self):
+        '''Метод для получения rtsp ссылки через протокол ONFIV. 
+        Благодаря этому методу, нам нужно знать только айпи адрес камеры.'''
         try:
             profiles = self.media_service.GetProfiles()
             if not profiles:
@@ -136,6 +140,8 @@ class OnvifController(QThread):
             raise RuntimeError("Камера недоступна или не готова к работе.")
 
     def _send_image_settings(self):
+        '''Основной метод передачи настроек через протокол ONVIF.
+        Подгатавливаем настройки в _update_param() и отправляем отсюда.'''
         try:
             set_req = self.imaging_service.create_type('SetImagingSettings')
             set_req.VideoSourceToken = self.video_source_token
@@ -152,10 +158,11 @@ class OnvifController(QThread):
             return False
 
     def _update_param(self, name: str, value: float = None):
+        '''Метод для подготовки настроек (self.image_settings) к отправке.'''
         try:
             self._check_ready()
             if value > 100.0 or value < 0.0:
-                self.logger.add_log('ERROR', f'начение вне диапазона ({value})')
+                self.logger.add_log('ERROR', f'Значение вне диапазона ({value})')
                 return
             if hasattr(self.image_settings, name):
                 if name == 'Brightness':
@@ -180,6 +187,7 @@ class OnvifController(QThread):
         self.connect()
 
     def set_brightness(self, value: float):
+        '''Данные методы подключены к ползункам в GUI.'''
         self._update_param('Brightness', value)
 
     def set_contrast(self, value: float):
@@ -189,6 +197,8 @@ class OnvifController(QThread):
         self._update_param('ColorSaturation', value)
 
     def check_changes(self):
+        '''Метод вызывается из onvif_vm.py по таймеру после каждой смены настроек изображения камеры.
+        Нужно, чтобы не было рассинхронизации реальных параметров и ползунка в GUI.'''
         self.logger.add_log('DEBUG', f'Сработала проверка')
         last_values = [self.brightness, self.contrast, self.saturation]
         new_values = [getattr(self.image_settings, 'Brightness', None), 
@@ -215,10 +225,12 @@ class OnvifController(QThread):
             self.saturation = None
 
     def _send_change_notification(self):
+        '''Если параметры в check_changes не совпали - onvif_vm обновит показатели в GUI.'''
         self.logger.add_log('WARN', f'Сигнал об изменениях отправлен')
         self.onvifChangeNotification.emit(self.slot)
 
     def get_current_params(self):
+        '''Метод для onvif_vm, получает текущие параметры камеры.'''
         self.logger.add_log('INFO', f'brightness = {self.brightness}, contrast = {self.contrast}, saturation = {self.saturation}')
         return self.ip, self.brightness, self.contrast, self.saturation
 
