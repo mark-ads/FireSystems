@@ -19,7 +19,7 @@ class OnvifController(QThread):
     '''
 
     onvifChangeNotification = pyqtSignal(str)
-
+    connectionEstablished = pyqtSignal(str)
     def __init__(self, config: Config, logger: MultiLogger, slot: Slot):
         super().__init__()
         self.config = config
@@ -98,17 +98,32 @@ class OnvifController(QThread):
         self._send_image_settings()
 
     def _get_rtsp(self):
-        profiles = self.media_service.GetProfiles()
-        profile = profiles[0]
-        stream_setup = {
-            'Stream': 'RTP-Unicast',
-            'Transport': {'Protocol': 'RTSP'}
-        }
+        try:
+            profiles = self.media_service.GetProfiles()
+            if not profiles:
+                self.logger.add_log('ERROR', f'No profiles returned from media_service')
+                return
+            profile = profiles[0]
+            stream_setup = {
+                'Stream': 'RTP-Unicast',
+                'Transport': {'Protocol': 'RTSP'}
+            }
 
-        uri = self.media_service.GetStreamUri({'StreamSetup': stream_setup, 'ProfileToken': profile.token})
-        print(f'RTSP ==================== {uri['Uri'].strip()}')
-        uri = uri['Uri'].strip()
-        self.config.set(self.system_id, self.slot, 'camera', 'rtsp', value = uri)
+            uri_data = self.media_service.GetStreamUri({'StreamSetup': stream_setup, 'ProfileToken': profile.token})
+            if isinstance(uri_data, dict):
+                uri = uri_data.get('Uri')
+            else:
+                uri = getattr(uri_data, 'Uri', None)
+            if not uri:
+                self.logger.add_log('ERROR', f'Invalid RTSP URI response: {uri_data}')
+                return
+            uri = uri.strip()
+            self.logger.add_log('INFO', f'RTSP recieved from ONVIF.')
+            self.logger.add_log('DEBUG', f'RTSP = "{uri}"')
+            self.config.set(self.system_id, self.slot, 'camera', 'rtsp', value = uri)
+            self.connectionEstablished.emit(self.slot)
+        except Exception as e:
+            self.logger.add_log('ERROR', f'_get_rtsp(): {e}')
 
 
     def switch_system(self, new_system: System):
