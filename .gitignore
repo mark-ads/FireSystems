@@ -382,3 +382,4 @@ FodyWeavers.xsd
 /vlc/plugins
 /vlc/libvlc.dll
 /vlc/libvlccore.dll
+/video_item.py
