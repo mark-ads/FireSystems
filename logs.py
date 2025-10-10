@@ -13,6 +13,15 @@ log_levels = {
 }
 
 class SingleLogger:
+    """
+    Экземпляр логгера. Каждый логгер пишет в свой файл.
+    Обычно, на один объект - один логгер.
+    Берет уровень логов из settings.yaml.
+    :param log_dir: Папка для логов.
+    :param max_bytes: Максимальный размер файла до ротации.
+    :param backup_count: Количество резервных файлов.
+    """
+
     def __init__(self, config: Config, name: str, log_dir: Path):
         self.config = config
         self.console_on = self.config.get_sys_settings_bool('console_on')
@@ -53,13 +62,12 @@ class SingleLogger:
         self.logger.log(log_level, data)
 
 class MultiLogger:
+    """
+    Фабрика логгеров.
+    Создает новый SingleLogger или возвращает готовый.
+    """
+
     def __init__(self, config: Config):
-        """
-        Создаёт четыре логгера с ротацией файлов.
-        :param log_dir: Папка для логов.
-        :param max_bytes: Максимальный размер файла до ротации.
-        :param backup_count: Количество резервных файлов.
-        """
         self.config = config
         self.log_dir = Path('logs')
         self.log_dir.mkdir(parents=True, exist_ok=True)
