@@ -8,6 +8,12 @@ from models import Slot, System
 from .image_provider import CameraImageProvider
 
 class VideoStream(QThread):
+    '''
+    Первоначальный класс для отображения видео. Действовал на cv2 + image_provider.
+    Отказался от него, так как он всю работу выполнял на процессоре, 
+    плюс он передавал каждый кадр через сигнал, что могло приводить к крашам,
+    если сигналов становилось слишком много.
+    '''
     frameReady = pyqtSignal()
     def __init__(self, config: Config, logger: MultiLogger, provider: CameraImageProvider, slot: Slot):
         super().__init__()

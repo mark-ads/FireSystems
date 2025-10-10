@@ -1,7 +1,7 @@
 import os
 import sys
 import ctypes
-
+from zond.dicts import vlc_states
 from PyQt5.QtCore import QObject, QThread, QMetaObject, QTimer, pyqtSlot, pyqtProperty, pyqtSignal
 from pydantic.json_schema import Examples
 from config import Config
@@ -57,8 +57,11 @@ class VlcQtRegistrator:
 
 class VlcPlayer(QObject):
     '''
-    Объект плеера. Сам плеер инициализируется в QML, затем извлекается оттуда и передаётся в этот поток для управления.
+    VLC
 
+    Сам плеер инициализируется в QML, затем извлекается оттуда и передаётся в этот объект для управления.
+    Работает в главном потоке. После того как плеер запущен - он сам управляет видимостью виджета в GUI,
+    а так же при смене состояния плеера пробует переподключиться.
     '''
     onlineChanged = pyqtSignal()
 
@@ -117,12 +120,18 @@ class VlcPlayer(QObject):
 
             
     def get_state(self):
+        '''
+        Данная функция подключена к сигналу stateChange из VlcQt.
+        Получить текущий стейт от VLC. 
+        Если 3 - значит видео идет, показываем картинку.
+        Если 4-7 - переподключаемся.
+        '''
         try:
             state = self.player.property("state")
             if self.state == state:
                 return
             self.state = state
-            self.logger.add_log("DEBUG", f"State: {state}")
+            self.logger.add_log("DEBUG", f"State = [{state}]. {vlc_states[state]}")
             if state == 3:
                 self.onlineStatus = True
                 self.timer.stop()
@@ -135,16 +144,3 @@ class VlcPlayer(QObject):
         except Exception as e:
             self.logger.add_log("ERROR", f"Ошибка в get_state(): {e}")
             self._start_timer()
-
-
-'''
-States of VLC Player
-[0] -Idle / NothingSpecial → плеер создан, но ничего не воспроизводит.
-[1] Opening → идёт открытие медиа (RTSP, файл, поток).
-[2] Buffering → загрузка/буферизация данных.
-[3] Playing → воспроизведение запущено.
-[4] Paused → воспроизведение приостановлено.
-[5] Stopped → воспроизведение остановлено (но медиа ещё может быть связано).
-[6] Ended → воспроизведение дошло до конца.
-[7] Error → произошла ошибка (например, файл не найден, разрыв RTSP).
-'''
