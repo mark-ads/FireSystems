@@ -10,7 +10,12 @@ from logs import MultiLogger
 class DvripController(QThread):
     '''
     Класс для управления параметрами камеры по протоколу DVRIP.
-    
+    В начале приложения создаются два потока данного класса, на каждую сторону.
+    После создания, потоки начинают ждать команду.
+    Когда GUI готов - DvripVM помещает команду на поключение в очередь.
+    При подключении отправляет на камеру настройки из конфига.
+
+    После подключения пользователь может управлять настройками камеры через протокол DVRIP.
     '''
     dvripChangeNotification = pyqtSignal(str)
 
@@ -254,6 +259,7 @@ class DvripController(QThread):
         self.dvripChangeNotification.emit(self.slot)
 
     def get_current_params(self) -> Dict:
+        '''Метод для DvripVM, возвращает текущие параметры.'''
         self.logger.add_log('INFO', f'fps={self.fps}, expo={self.expo}, gain={self.gain}, auto_gain={self.auto_gain}, auto_expo={self.manual_expo}, mirror={self.mirror}, flip={self.flip}')
         return self.fps, self.expo, self.gain, self.auto_gain, self.manual_expo, self.mirror, self.flip
 
@@ -271,6 +277,7 @@ class DvripController(QThread):
         self.connect()
 
     def set_fps(self, value: int):
+        '''Данный метод подключены к GUI.'''
         if not self._check_ready or self.fps is None:
             self.logger.add_log('WARN', f'self.fps = {self.fps}')
             return

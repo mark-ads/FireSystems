@@ -123,14 +123,12 @@ class SystemsController(QThread):
 
         system_to_remove = self.systems[self.system_id]
 
-        # 1. Останавливаем фронт и бэк (таймеры, фоновые процессы)
         try:
             system_to_remove.front.stop()
             system_to_remove.back.stop()
         except Exception as e:
             self.logger.add_log('ERROR', f'Ошибка при остановке бекендов: {e}')
 
-        # 2. Отсоединяем сигналы фронт и бэк
         try:
             self.guiIsReady.disconnect(system_to_remove.front.init_on_gui)
             self.guiIsReady.disconnect(system_to_remove.back.init_on_gui)
@@ -143,17 +141,14 @@ class SystemsController(QThread):
         except Exception as e:
             self.logger.add_log('ERROR', f'Ошибка при отключении сигналов: {e}')
 
-        # 3. Удаляем из словаря и атрибутов
         del self.systems[self.system_id]
         if hasattr(self, self.system_id):
             delattr(self, self.system_id)
 
-        # 4. Удаляем из конфигурации
         self.config.remove_system(self.system_id)
 
         self.logger.add_log('INFO', f'Система {self.system_id} удалена')
 
-        # 5. Обновляем receiver
         self.receiver.update_settings()
 
     def run(self):

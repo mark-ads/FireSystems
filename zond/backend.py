@@ -17,8 +17,12 @@ def get_time():
 class Backend(QObject):
     '''
     Класс для получения и обработки строк принятых в Receiver.
-    
     Принимает строку, парсит и обрабатывает результат.
+    После - отправляет данные в SignalHub.
+    Так же, собирает историю показателей температуры, давления и прочего для отправки, 
+    после того как будет выбрана новая система.
+    Содержит в себе таймер, который сбрасывается при каждом получении пакета. 
+    Если таймер сработал - значит ардуино перестал выходить на связь. Меняем статус на оффлайн.
     '''
 
     updateSettings = pyqtSignal()
@@ -231,6 +235,7 @@ class Backend(QObject):
         self._proccess_for_chart()
 
     def _proccess_for_chart(self):
+        '''Сбор и подсчет средних значений для дальнейшей отправки в графики.'''
         self.avg_temps['air'].append(self.temperatures[0])
         self.avg_temps['water'].append(self.temperatures[1])
         self.avg_temps['out'].append(self.temperatures[2])
@@ -291,6 +296,7 @@ class Backend(QObject):
         self.hub.forward_press_chart(self.system_id, self.slot, data)
 
     def add_random(self):
+        '''Функция для тестового запуска. Заполняем историю рандомными показателями.'''
         for i in range(360):
             self.temps_charts['air'].append(round(random.uniform(25, 35), 2))
             self.temps_charts['water'].append(round(random.uniform(25, 35), 2))

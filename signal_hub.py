@@ -6,6 +6,9 @@ from PyQt5.QtCore import QObject, Qt, pyqtSignal, QThread, pyqtSlot
 class SignalHub(QObject):
     '''
     Класс для фильтрации данных от backend'ов и передачи их в UdpVM.
+    Все backend'ы отправляют данные сюда независимо от выбранной системы.
+    Хаб фильтрует сигналы и пропускает дальше в UpdVm сигналы только от выбранной системы.
+    Таким образом, backend'ы никогда не останавливаются и продолжают обрабатывать пакеты от Ардуино всегда.
     '''
     forwardModMessage = pyqtSignal(str, dict)
     forwardTempChart = pyqtSignal(str, list)

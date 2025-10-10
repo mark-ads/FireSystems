@@ -16,6 +16,7 @@ class Receiver(QObject):
     Принимает пакеты от устройств с заданными IP.
     различает отправителей,
     передаёт строки в зависимости от адреса отправителя.
+    Выбран QUdpSocket, так как он нативный для Qt, а так же не блокирует поток.
     '''
     forwardTelemetry = pyqtSignal(Telemetry)
 
@@ -60,7 +61,7 @@ class Receiver(QObject):
 
 
     def _rebuild_ip_map(self):
-        '''Функция создания карты айпи при смене настроек'''
+        '''Функция создания карты айпи при смене настроек.'''
         new_map: IpMapType = {}
         for system_id, zond_pair in self.config.systems.items():
             for slot in ('front', 'back'):
