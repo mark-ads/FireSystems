@@ -20,7 +20,7 @@ def create_app(app):
     config.add_logger(logger)
     vlc_registrator = VlcQtRegistrator(logger)
     vlc_registrator.register_vlc_qt()
-    sender = UdpSender()
+    sender = UdpSender(logger)
     onvif_front = OnvifController(config, logger, 'front')
     onvif_back = OnvifController(config, logger, 'back')
     dvrip_front = DvripController(config, logger, 'front')
