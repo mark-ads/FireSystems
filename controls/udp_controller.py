@@ -95,8 +95,8 @@ class UdpController(QObject):
         self._send_command('stopZ')
 
     def reboot(self):
-        self.logger.add_log('DEBUG', f'Command = reboot')
-        self._send_command('restartZ')
+        self.logger.add_log('DEBUG', f'Command = resetZ')
+        self._send_command('resetZ')
 
     def turn_right(self, value: int):
         self.logger.add_log('DEBUG', f'Command = turn_right {value}')
