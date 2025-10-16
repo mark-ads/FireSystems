@@ -127,13 +127,13 @@ ApplicationWindow {
                     }
                 }
 
-            Connections {
-                target: viewmodel
-                function onNamesUpdated() {
-                    systemRepeater.model = Object.keys(viewmodel.systemNames)
+                Connections {
+                    target: viewmodel
+                    function onNamesUpdated() {
+                        systemRepeater.model = Object.keys(viewmodel.systemNames)
+                    }
                 }
             }
         }
     }
-}
 }
