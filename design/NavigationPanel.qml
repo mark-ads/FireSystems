@@ -2,7 +2,6 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 
-
 Rectangle {
     id: panel
     width: 180
@@ -107,7 +106,6 @@ Rectangle {
                 font.pixelSize: 14; font.bold: true
             }
         }
-
 
         Rectangle {
             id: backSwitch
@@ -238,7 +236,6 @@ Rectangle {
             }
         }
 
-
         Button {
             id: termButton
             checkable: true
@@ -267,8 +264,6 @@ Rectangle {
             }
         }
 
-
-
         TabButton {
             id: techButton
             checkable: true
@@ -296,8 +291,6 @@ Rectangle {
             }
         }
 
-
-
         TabButton {
             id: settingsButton
             checkable: true
@@ -324,16 +317,12 @@ Rectangle {
             }
         }
 
-
-
-        TabButton {
+        Button {
             id: infoButton
             checkable: false
-            checked: panel.activeIndex === 4
             Layout.preferredWidth: 180
             Layout.preferredHeight: 60
-            onClicked: panel.updateSelection(4)
-
+            onClicked: infoPopup.open()
             background: Rectangle {
                 color: infoButton.checked ? "#cccccc" : "#ffffff"
                 border.color: "#888888"

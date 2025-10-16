@@ -136,4 +136,8 @@ ApplicationWindow {
             }
         }
     }
+
+    InfoPopup {
+        id: infoPopup
+    }
 }
