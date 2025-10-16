@@ -259,7 +259,7 @@ Item {
                         width: 175
                         height: 24
                         visible: viewmodel.udp.frontLimitSwitch === 0
-                        color: "#94f7ff"
+                        color: "#90ee90"
                         radius: 6
                         border.width: 2
                         Text {
@@ -283,7 +283,7 @@ Item {
                         width: 175
                         height: 24
                         visible: viewmodel.udp.frontLimitSwitch === 1
-                        color: "#90ee90"
+                        color: "#fd5c78"
                         radius: 6
                         border.width: 2
                         Text {
@@ -303,7 +303,6 @@ Item {
                 }
             }
         }
-
         Rectangle {
             id: backView
             x: 960
@@ -311,6 +310,7 @@ Item {
             height: 540
             color: "#cccccc"
             border.width: 1
+        
             VlcVideoOutput {
                 z: 10
                 anchors.fill: parent
@@ -321,6 +321,7 @@ Item {
                 }
                 visible: viewmodel.backPlayer.onlineStatus === true
             }
+
             Rectangle {
                 id: backNoSignal
                 x: 360
@@ -540,7 +541,7 @@ Item {
                         width: 175
                         height: 24
                         visible: viewmodel.udp.backLimitSwitch === 0
-                        color: "#94f7ff"
+                        color: "#90ee90"
                         radius: 6
                         border.width: 2
                         Text {
@@ -565,7 +566,7 @@ Item {
                         width: 175
                         height: 24
                         visible: viewmodel.udp.backLimitSwitch === 1
-                        color: "#90ee90"
+                        color: "#fd5c78"
                         radius: 6
                         border.width: 2
                         Text {
