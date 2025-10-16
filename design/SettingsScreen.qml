@@ -237,9 +237,13 @@ Item {
                         property real lastValue: parseFloat(text) || 10
 
                         onTextChanged: {
+                            var pos = cursorPosition
+                            var oldLength = text.length
+
                             var clean = text
                             clean = clean.replace(",", ".")
                             clean = clean.replace(/[^0-9.]/g, "")
+
                             var firstDot = clean.indexOf(".")
                             if (firstDot !== -1) {
                                 var before = clean.substring(0, firstDot + 1)
@@ -248,7 +252,10 @@ Item {
                             }
 
                             if (clean !== text) {
+                                var diff = clean.length - oldLength
                                 text = clean
+
+                                cursorPosition = Math.min(pos + diff, text.length)
                             }
                         }
 
@@ -324,9 +331,13 @@ Item {
                         property real lastValue: parseFloat(text) || 10
 
                         onTextChanged: {
+                            var pos = cursorPosition
+                            var oldLength = text.length
+
                             var clean = text
                             clean = clean.replace(",", ".")
                             clean = clean.replace(/[^0-9.]/g, "")
+
                             var firstDot = clean.indexOf(".")
                             if (firstDot !== -1) {
                                 var before = clean.substring(0, firstDot + 1)
@@ -335,7 +346,10 @@ Item {
                             }
 
                             if (clean !== text) {
+                                var diff = clean.length - oldLength
                                 text = clean
+
+                                cursorPosition = Math.min(pos + diff, text.length)
                             }
                         }
 
@@ -411,9 +425,13 @@ Item {
                         property real lastValue: parseFloat(text) || 50
 
                         onTextChanged: {
+                            var pos = cursorPosition
+                            var oldLength = text.length
+
                             var clean = text
                             clean = clean.replace(",", ".")
                             clean = clean.replace(/[^0-9.]/g, "")
+
                             var firstDot = clean.indexOf(".")
                             if (firstDot !== -1) {
                                 var before = clean.substring(0, firstDot + 1)
@@ -422,7 +440,10 @@ Item {
                             }
 
                             if (clean !== text) {
+                                var diff = clean.length - oldLength
                                 text = clean
+
+                                cursorPosition = Math.min(pos + diff, text.length)
                             }
                         }
 
@@ -498,9 +519,13 @@ Item {
                         property real lastValue: parseFloat(text) || 50
 
                         onTextChanged: {
+                            var pos = cursorPosition
+                            var oldLength = text.length
+
                             var clean = text
                             clean = clean.replace(",", ".")
                             clean = clean.replace(/[^0-9.]/g, "")
+
                             var firstDot = clean.indexOf(".")
                             if (firstDot !== -1) {
                                 var before = clean.substring(0, firstDot + 1)
@@ -509,7 +534,10 @@ Item {
                             }
 
                             if (clean !== text) {
+                                var diff = clean.length - oldLength
                                 text = clean
+
+                                cursorPosition = Math.min(pos + diff, text.length)
                             }
                         }
 
@@ -585,9 +613,13 @@ Item {
                         property real lastValue: parseFloat(text) || 50
 
                         onTextChanged: {
+                            var pos = cursorPosition
+                            var oldLength = text.length
+
                             var clean = text
                             clean = clean.replace(",", ".")
                             clean = clean.replace(/[^0-9.]/g, "")
+
                             var firstDot = clean.indexOf(".")
                             if (firstDot !== -1) {
                                 var before = clean.substring(0, firstDot + 1)
@@ -596,7 +628,10 @@ Item {
                             }
 
                             if (clean !== text) {
+                                var diff = clean.length - oldLength
                                 text = clean
+
+                                cursorPosition = Math.min(pos + diff, text.length)
                             }
                         }
 
@@ -672,9 +707,13 @@ Item {
                         property real lastValue: parseFloat(text) || 50
 
                         onTextChanged: {
+                            var pos = cursorPosition
+                            var oldLength = text.length
+
                             var clean = text
                             clean = clean.replace(",", ".")
                             clean = clean.replace(/[^0-9.]/g, "")
+
                             var firstDot = clean.indexOf(".")
                             if (firstDot !== -1) {
                                 var before = clean.substring(0, firstDot + 1)
@@ -683,7 +722,10 @@ Item {
                             }
 
                             if (clean !== text) {
+                                var diff = clean.length - oldLength
                                 text = clean
+
+                                cursorPosition = Math.min(pos + diff, text.length)
                             }
                         }
 
@@ -949,9 +991,13 @@ Item {
                         property real lastValue: parseFloat(text) || 10
 
                         onTextChanged: {
+                            var pos = cursorPosition
+                            var oldLength = text.length
+
                             var clean = text
                             clean = clean.replace(",", ".")
                             clean = clean.replace(/[^0-9.]/g, "")
+
                             var firstDot = clean.indexOf(".")
                             if (firstDot !== -1) {
                                 var before = clean.substring(0, firstDot + 1)
@@ -960,7 +1006,10 @@ Item {
                             }
 
                             if (clean !== text) {
+                                var diff = clean.length - oldLength
                                 text = clean
+
+                                cursorPosition = Math.min(pos + diff, text.length)
                             }
                         }
 
@@ -981,6 +1030,7 @@ Item {
                                 text = lastValue
                             }
                         }
+
                         Connections {
                             target: viewmodel.udp
                             function onBackSettingsChanged() {
@@ -1037,9 +1087,13 @@ Item {
                         property real lastValue: parseFloat(text) || 10
 
                         onTextChanged: {
+                            var pos = cursorPosition
+                            var oldLength = text.length
+
                             var clean = text
                             clean = clean.replace(",", ".")
                             clean = clean.replace(/[^0-9.]/g, "")
+
                             var firstDot = clean.indexOf(".")
                             if (firstDot !== -1) {
                                 var before = clean.substring(0, firstDot + 1)
@@ -1048,7 +1102,10 @@ Item {
                             }
 
                             if (clean !== text) {
+                                var diff = clean.length - oldLength
                                 text = clean
+
+                                cursorPosition = Math.min(pos + diff, text.length)
                             }
                         }
 
@@ -1125,9 +1182,13 @@ Item {
                         property real lastValue: parseFloat(text) || 50
 
                         onTextChanged: {
+                            var pos = cursorPosition
+                            var oldLength = text.length
+
                             var clean = text
                             clean = clean.replace(",", ".")
                             clean = clean.replace(/[^0-9.]/g, "")
+
                             var firstDot = clean.indexOf(".")
                             if (firstDot !== -1) {
                                 var before = clean.substring(0, firstDot + 1)
@@ -1136,7 +1197,10 @@ Item {
                             }
 
                             if (clean !== text) {
+                                var diff = clean.length - oldLength
                                 text = clean
+
+                                cursorPosition = Math.min(pos + diff, text.length)
                             }
                         }
 
@@ -1213,9 +1277,13 @@ Item {
                         property real lastValue: parseFloat(text) || 50
 
                         onTextChanged: {
+                            var pos = cursorPosition
+                            var oldLength = text.length
+
                             var clean = text
                             clean = clean.replace(",", ".")
                             clean = clean.replace(/[^0-9.]/g, "")
+
                             var firstDot = clean.indexOf(".")
                             if (firstDot !== -1) {
                                 var before = clean.substring(0, firstDot + 1)
@@ -1224,7 +1292,10 @@ Item {
                             }
 
                             if (clean !== text) {
+                                var diff = clean.length - oldLength
                                 text = clean
+
+                                cursorPosition = Math.min(pos + diff, text.length)
                             }
                         }
 
@@ -1245,6 +1316,7 @@ Item {
                                 text = lastValue
                             }
                         }
+
                         Connections {
                             target: viewmodel.udp
                             function onBackSettingsChanged() {
@@ -1301,9 +1373,13 @@ Item {
                         property real lastValue: parseFloat(text) || 50
 
                         onTextChanged: {
+                            var pos = cursorPosition
+                            var oldLength = text.length
+
                             var clean = text
                             clean = clean.replace(",", ".")
                             clean = clean.replace(/[^0-9.]/g, "")
+
                             var firstDot = clean.indexOf(".")
                             if (firstDot !== -1) {
                                 var before = clean.substring(0, firstDot + 1)
@@ -1312,7 +1388,10 @@ Item {
                             }
 
                             if (clean !== text) {
+                                var diff = clean.length - oldLength
                                 text = clean
+
+                                cursorPosition = Math.min(pos + diff, text.length)
                             }
                         }
 
@@ -1333,6 +1412,7 @@ Item {
                                 text = lastValue
                             }
                         }
+
                         Connections {
                             target: viewmodel.udp
                             function onBackSettingsChanged() {
@@ -1447,9 +1527,13 @@ Item {
                         property real lastValue: parseFloat(text) || 50
 
                         onTextChanged: {
+                            var pos = cursorPosition
+                            var oldLength = text.length
+
                             var clean = text
                             clean = clean.replace(",", ".")
                             clean = clean.replace(/[^0-9.]/g, "")
+
                             var firstDot = clean.indexOf(".")
                             if (firstDot !== -1) {
                                 var before = clean.substring(0, firstDot + 1)
@@ -1458,7 +1542,10 @@ Item {
                             }
 
                             if (clean !== text) {
+                                var diff = clean.length - oldLength
                                 text = clean
+
+                                cursorPosition = Math.min(pos + diff, text.length)
                             }
                         }
 
