@@ -52,11 +52,6 @@ class UdpController(QObject):
         self.system_id = new_system
         self.connect()
 
-    def _check_ready(self):
-        if not self.is_online:
-            self.disconnect()
-            self.logger.add_log('ERROR', f'Контроллер не в сети или не готов к работе.')
-
     def _send_command(self, data: str):
         self.socket.send(self.ip, data)
 
