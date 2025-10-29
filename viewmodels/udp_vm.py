@@ -1,7 +1,7 @@
 from controls.udp_controller import UdpController
 from PyQt5.QtCore import QObject, pyqtSignal, pyqtSlot, pyqtProperty, QVariant
 from models import Command, Slot, System
-from typing import Dict, Literal
+from typing import Dict
 from collections import deque
 
 
