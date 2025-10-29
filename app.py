@@ -7,7 +7,6 @@ from zond.backend import SignalHub
 from zond.sender import UdpSender
 from zond.systems_controller import SystemsController
 from camera.vlc import VlcQtRegistrator, VlcPlayer
-from camera.image_provider import CameraImageProvider
 from controls.onvif_controller import OnvifController
 from controls.dvrip_controller import DvripController
 from controls.udp_controller import UdpController
