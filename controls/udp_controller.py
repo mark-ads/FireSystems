@@ -1,9 +1,5 @@
-from queue import Queue
-from onvif import ONVIFCamera
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtNetwork import QHostAddress
-from zeep import xsd
-from typing import Literal
 from config import Config
 from logs import MultiLogger
 from models import Command, Slot
