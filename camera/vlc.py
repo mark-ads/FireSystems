@@ -74,6 +74,7 @@ class VlcPlayer(QObject):
         self.slot = slot
         self._online_status = False
         self.state = 0
+        self.test_mode = self.config.get_sys_settings_bool('test_mode')
 
         self.timer = QTimer(self)
         self.timer.setInterval(7000)
@@ -107,7 +108,7 @@ class VlcPlayer(QObject):
             self.timer.start()
 
     def connect(self):
-        if self.player:
+        if not self.test_mode and self.player:
             try:
                 QMetaObject.invokeMethod(self.player, "stop")
                 self.rtsp = self.config.get_str(self.system_id, self.slot, 'camera', 'rtsp')
