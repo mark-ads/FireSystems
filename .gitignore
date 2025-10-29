@@ -384,3 +384,4 @@ FodyWeavers.xsd
 /vlc/libvlccore.dll
 /video_item.py
 /design/InfoPopup.qml
+/settings.yaml
