@@ -19,7 +19,7 @@ def create_app(app):
     config.add_logger(logger)
     vlc_registrator = VlcQtRegistrator(logger)
     vlc_registrator.register_vlc_qt()
-    sender = UdpSender(logger)
+    sender = UdpSender(config, logger)
     onvif_front = OnvifController(config, logger, 'front')
     onvif_back = OnvifController(config, logger, 'back')
     dvrip_front = DvripController(config, logger, 'front')
@@ -35,6 +35,8 @@ def create_app(app):
     viewmodel.switchSystems.connect(back_player.switch_systems, Qt.QueuedConnection)
     viewmodel.switchSystems.connect(hub.switch_system, Qt.QueuedConnection)
     viewmodel.switchSystems.connect(controller.switch_system, Qt.QueuedConnection)
+    if config.get_sys_settings_bool('test_mode'):
+        viewmodel.switchSystems.connect(sender.update_mock, Qt.QueuedConnection)
     globals()["front_player"] = front_player
     globals()["back_player"] = back_player
     globals()["viewmodel"] = viewmodel
@@ -53,5 +55,7 @@ def create_app(app):
     back_player.set_player(root.findChild(QObject, "backPlayer"))
     screen_geometry = app.primaryScreen().availableGeometry()
     app.setWindowIcon(QIcon("design/images/icoo.ico"))
+
+
     
     return engine

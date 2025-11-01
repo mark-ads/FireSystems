@@ -32,12 +32,17 @@ class Receiver(QObject):
             self.socket.close()
             self.socket.deleteLater()
         self.socket = QUdpSocket(self)
-        if not self.socket.bind(QHostAddress(self.sys_ip), 80):
+        if self.config.get_sys_settings_bool('test_mode'):
+            socket_bind = self.socket.bind(QHostAddress('127.0.0.1'), 80)
+            self.socket.readyRead.connect(self._mock_ready_read)
+        else:
+            socket_bind = self.socket.bind(QHostAddress(self.sys_ip), 80)
+            self.socket.readyRead.connect(self._on_ready_read)
+        if not socket_bind:
             self.logger.add_log('ERROR', f"❌ Ошибка bind {self.sys_ip}:80")
         else:
             self.logger.add_log('INFO', f"✅ Слушаем {self.sys_ip}:80")
-            self.socket.readyRead.connect(self._on_ready_read)
-
+                
 
     def _on_ready_read(self):
         while self.socket.hasPendingDatagrams():
@@ -73,3 +78,19 @@ class Receiver(QObject):
                 except Exception as e:
                     self.logger.add_log('WARN', f'⚠️ Ошибка получения IP {system_id}.{slot}: {e}')
         self.ip_map = new_map
+
+    def _mock_ready_read(self):
+        while self.socket.hasPendingDatagrams():
+            datagram, host, port = self.socket.readDatagram(self.socket.pendingDatagramSize())
+            data = datagram.decode("utf-8", errors="ignore")
+            sender_ip = data.split('*')[1]
+            data = data.split('*')[0]
+       
+            matches = [key for key, ip in self.ip_map.items() if ip == sender_ip]
+            if matches:
+                for system_id, slot in matches:
+                    self.logger.add_log('DEBUG', f'📩Принят пакет контроллера: {sender_ip}')
+                    tel = Telemetry(system_id, slot, data)
+                    self.forwardTelemetry.emit(tel)
+            else:
+                self.logger.add_log('WARN', f'Принят НЕИЗВЕСТНЫЙ отправитель. {sender_ip}')
