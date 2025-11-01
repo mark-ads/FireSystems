@@ -62,7 +62,7 @@ class UdpMocker(QObject):
             data = datagram.decode("utf-8", errors="ignore")
             ip = data.split('*')[0]
             cmd = data.split('*')[1]
-            print(ip)
+
             if ip not in self.ips:
                 return
 
@@ -131,14 +131,13 @@ class UdpMocker(QObject):
 
             elif cmd == 'ch_motor_DIR':
                 self.ips[ip]['dir'] = 1 - self.ips[ip]['dir']
+
                 if self.ips[ip]['dir']:
                     msg = 'Right'
                 else:
                     msg = 'Left'
 
                 self._send_mock(msg, ip)
-
-
 
     def _set_mods_on(self, ip):
         if 'timer' not in self.ips[ip]:
