@@ -1,6 +1,6 @@
 from .dvrip_lib import DVRIPCam
 from config import Config
-from typing import Dict, Literal, Union
+from typing import Dict, Tuple, Union
 from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 from queue import Queue
 from models import Command, Slot
@@ -26,6 +26,7 @@ class DvripController(QThread):
         self.slot = slot
         self.logger = logger.get_logger(f'dvrip_{self.slot}')
         self.camera = None
+        self.test_mode = self.config.get_sys_settings_bool('test_mode')
         self.disconnect()
 
         self.commands = Queue()
@@ -39,6 +40,11 @@ class DvripController(QThread):
         self.password = self.config.get_str(self.system_id, self.slot, 'camera', 'password')
 
     def connect(self):
+        if self.test_mode:
+            self._mock_connect()
+            self._send_change_notification()
+            return
+
         self.disconnect()
         self.update_settings()
         try:
@@ -148,7 +154,7 @@ class DvripController(QThread):
         self.connect()
 
     def _check_ready(self) -> bool:
-        if self.camera is None:
+        if self.camera is None and not self.test_mode:
             self.logger.add_log('DEBUG', f'_check_ready() -> None')
             return False
         return True
@@ -166,7 +172,7 @@ class DvripController(QThread):
         else:
             method()
 
-    def _send_camera_command(self, attr_name: str, section: str, param_path: list, value: Union[int, str], config_key: str = None):
+    def _send_camera_command(self, attr_name: str, section: str, param_path: list, value: Union[int, str], config_key: str = None) -> bool:
         """
         Универсальная отправка команды на камеру DVRIP.
     
@@ -176,6 +182,12 @@ class DvripController(QThread):
         :param value: значение, которое нужно установить
         :param config_key: ключ для сохранения в конфиг (например 'exposure')
         """
+        if self.test_mode:
+            if config_key:
+                self.config.set(self.system_id, self.slot, 'camera', config_key, value=value)
+            setattr(self, attr_name, value)
+            return True
+
         if getattr(self, attr_name) is None:
             self.logger.add_log('ERROR', f'Не найден параметр в {attr_name} в объекте')
             return False
@@ -200,7 +212,7 @@ class DvripController(QThread):
             self.logger.add_log('ERROR', f'Ошибка отправки команды {param_path}: {e}')
 
     def check_changes(self):
-        if not self._check_ready():
+        if not self._check_ready() or self.test_mode:
             return
         last_values = {
             "fps": self.fps,
@@ -258,7 +270,7 @@ class DvripController(QThread):
         self.logger.add_log('WARN', f'Сигнал изменения настроек отправлен!')
         self.dvripChangeNotification.emit(self.slot)
 
-    def get_current_params(self) -> Dict:
+    def get_current_params(self) -> Tuple:
         '''Метод для DvripVM, возвращает текущие параметры.'''
         self.logger.add_log('INFO', f'fps={self.fps}, expo={self.expo}, gain={self.gain}, auto_gain={self.auto_gain}, auto_expo={self.manual_expo}, mirror={self.mirror}, flip={self.flip}')
         return self.fps, self.expo, self.gain, self.auto_gain, self.manual_expo, self.mirror, self.flip
@@ -365,3 +377,13 @@ class DvripController(QThread):
             self.logger.add_log('DEBUG', f'command = {command}')
             if command is not None:
                 self._exec_command(command)
+
+    def _mock_connect(self):
+        self.logger.add_log('INFO', 'Тестовый режим. _mock_connect()')
+        self.fps = self.config.get(self.system_id, self.slot, 'camera', 'fps')
+        self.auto_gain = self.config.get(self.system_id, self.slot, 'camera', 'auto_gain')
+        self.gain = self.config.get(self.system_id, self.slot, 'camera', 'gain')
+        self.manual_expo = self.config.get(self.system_id, self.slot, 'camera', 'manual_exposure')
+        self.expo = self.config.get(self.system_id, self.slot, 'camera', 'exposure')
+        self.flip = self.config.get(self.system_id, self.slot, 'camera', 'flip')
+        self.mirror = self.config.get(self.system_id, self.slot, 'camera', 'mirror')
