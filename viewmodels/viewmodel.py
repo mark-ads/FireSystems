@@ -1,4 +1,3 @@
-from PyQt5.QtQuick import QQuickItem
 from camera.vlc import VlcPlayer
 from config import Config
 from controls.onvif_controller import OnvifController
