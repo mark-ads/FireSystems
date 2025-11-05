@@ -1,9 +1,9 @@
 from queue import Queue
-from PyQt5.QtCore import QObject, Qt, pyqtSlot, pyqtSignal, QThread
+from PyQt5.QtCore import QObject, pyqtSlot, pyqtSignal, QThread
 from config import Config
 from logs import MultiLogger
 from models import System, Telemetry
-from signal_hub import SignalHub
+from zond.signal_hub import SignalHub
 from .backend import Backend
 from .receiver import Receiver
 

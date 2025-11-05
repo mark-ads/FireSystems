@@ -3,7 +3,7 @@ from PyQt5.QtCore import QObject, QUrl, Qt
 from PyQt5.QtGui import QIcon
 from config import Config
 from logs import MultiLogger
-from zond.backend import SignalHub
+from zond.signal_hub import SignalHub
 from zond.sender import UdpSender
 from zond.systems_controller import SystemsController
 from camera.vlc import VlcQtRegistrator, VlcPlayer
@@ -53,9 +53,6 @@ def create_app(app):
     root = engine.rootObjects()[0]
     front_player.set_player(root.findChild(QObject, "frontPlayer"))
     back_player.set_player(root.findChild(QObject, "backPlayer"))
-    screen_geometry = app.primaryScreen().availableGeometry()
     app.setWindowIcon(QIcon("design/images/icoo.ico"))
 
-
-    
     return engine

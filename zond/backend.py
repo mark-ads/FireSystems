@@ -4,7 +4,7 @@ from typing import Literal, Dict
 from config import Config
 from logs import MultiLogger
 from models import Slot
-from signal_hub import SignalHub
+from zond.signal_hub import SignalHub
 from .dicts import errors_map, mods, limit_switch, temperature_map, pressure_map
 from datetime import datetime
 import random
