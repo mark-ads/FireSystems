@@ -1,0 +1,59 @@
+name: Build EXE (Windows)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --onedir --name FireSystems --windowed --icon=design/images/icoo.ico main.py
+
+      - name: Download VLC
+        run: |
+          curl -L -o vlc.zip https://download.videolan.org/pub/videolan/vlc/3.0.21/win64/vlc-3.0.21-win64.zip
+          powershell -Command "Expand-Archive -Path vlc.zip -DestinationPath vlc-bin"
+
+      - name: Copy VLC files into build
+        shell: pwsh
+        run: |
+          $vlcPath = (Get-ChildItem "vlc-bin" -Directory | Select-Object -First 1).FullName
+          New-Item -ItemType Directory -Force -Path "dist/FireSystems/vlc" | Out-Null
+          Copy-Item "$vlcPath/plugins" "dist/FireSystems/vlc" -Recurse -Force
+          Copy-Item "$vlcPath/libvlc.dll" "dist/FireSystems/vlc" -Force
+          Copy-Item "$vlcPath/libvlccore.dll" "dist/FireSystems/vlc" -Force
+          Copy-Item "vlc" "dist/FireSystems/vlc" -Recurse -Force
+
+      - name: Copy extra files
+        shell: pwsh
+        run: |
+          Copy-Item "design" "dist/FireSystems/design" -Recurse -Force
+          Copy-Item "wsdl" "dist/FireSystems/_internal/wsdl" -Recurse -Force
+          Copy-Item "settings.yaml" "dist/FireSystems" -Force
+
+      - name: Package build into ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist/FireSystems" -DestinationPath "FireSystems.zip" -Force
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FireSystems
+          path: FireSystems.zip
