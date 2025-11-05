@@ -2,8 +2,7 @@ import os
 import sys
 import ctypes
 from zond.dicts import vlc_states
-from PyQt5.QtCore import QObject, QThread, QMetaObject, QTimer, pyqtSlot, pyqtProperty, pyqtSignal
-from pydantic.json_schema import Examples
+from PyQt5.QtCore import QObject, QMetaObject, QTimer, pyqtSlot, pyqtProperty, pyqtSignal
 from config import Config
 from logs import MultiLogger
 from models import Slot, System
