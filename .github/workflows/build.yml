@@ -1,7 +1,10 @@
-name: Build EXE (Windows)
+name: Build EXE -64 and Release
 
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -38,7 +41,7 @@ jobs:
           Copy-Item "$vlcPath/plugins" "dist/FireSystems/vlc" -Recurse -Force
           Copy-Item "$vlcPath/libvlc.dll" "dist/FireSystems/vlc" -Force
           Copy-Item "$vlcPath/libvlccore.dll" "dist/FireSystems/vlc" -Force
-          Copy-Item "vlc" "dist/FireSystems/vlc" -Recurse -Force
+          Copy-Item "vlc" "dist/FireSystems/" -Recurse -Force
 
       - name: Copy extra files
         shell: pwsh
@@ -52,8 +55,24 @@ jobs:
         run: |
           Compress-Archive -Path "dist/FireSystems" -DestinationPath "FireSystems.zip" -Force
 
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+      - name: Read version
+        id: get_version
+        run: |
+          $version = (Get-Content VERSION).Trim()
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Package build into ZIP
+        shell: pwsh
+        run: |
+          $version = (Get-Content VERSION).Trim()
+          Compress-Archive -Path "dist/FireSystems" -DestinationPath "FireSystems_$version.zip" -Force
+
+      - name: Create GitHub Release and upload asset
+        uses: softprops/action-gh-release@v2
         with:
-          name: FireSystems
-          path: FireSystems.zip
+          tag_name: v${{ steps.get_version.outputs.version }}
+          name: "FireSystems v${{ steps.get_version.outputs.version }}"
+          body: "Автоматическая сборка версии ${{ steps.get_version.outputs.version }}."
+          files: FireSystems_${{ steps.get_version.outputs.version }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
