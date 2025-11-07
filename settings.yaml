@@ -1,0 +1,60 @@
+program_settings:
+  ip: 192.168.1.10
+  console_on: true
+  log_level: INFO
+  test_mode: true
+zond_pairs:
+  system_1:
+    name: Котёл 1
+    front:
+      arduino:
+        ip: 192.168.1.13
+        water_pressure_limit: 2.1
+        air_pressure_limit: 2.1
+        air_temp_limit: 50.1
+        water_temp_limit: 50.1
+        out_temp_limit: 70.1
+        wp_temp_limit: 70.1
+      camera:
+        ip: 192.168.1.20
+        onvif_port: 8899
+        rtsp: ''
+        login: admin
+        password: ''
+        fps: 25
+        auto_gain: 0
+        manual_exposure: false
+        gain: 1
+        exposure: 0
+        brightness: 35.0
+        contrast: 32.0
+        colorsaturation: 34.0
+        flip: false
+        mirror: false
+        ircut: 0
+    back:
+      arduino:
+        ip: 192.168.1.14
+        water_pressure_limit: 2.2
+        air_pressure_limit: 2.2
+        air_temp_limit: 50.3
+        water_temp_limit: 50.2
+        out_temp_limit: 70.2
+        wp_temp_limit: 70.2
+      camera:
+        ip: 192.168.1.21
+        onvif_port: 8899
+        rtsp: ''
+        login: admin
+        password: ''
+        fps: 25
+        auto_gain: 0
+        manual_exposure: false
+        gain: 1
+        exposure: 0
+        brightness: 35.0
+        contrast: 32.0
+        colorsaturation: 34.0
+        flip: false
+        mirror: false
+        ircut: 0
