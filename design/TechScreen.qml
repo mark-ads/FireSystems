@@ -1915,11 +1915,11 @@ Item {
                     id: button1
                     x: -31
                     y: -40
-                    visible: false
+                    visible: true
+                    opacity: 0
                     onClicked: controller.sendHistory()
                 }
             }
         }
-
     }
 }
