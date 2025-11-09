@@ -87,15 +87,15 @@ class UdpMocker(QObject):
 
             elif cmd.startswith('MKsetIP'):
                 new_ip = cmd.split('_')[1]
-                data = data.replace('.', '')
+                data = new_ip.replace('.', '')
                 msg = f'IP_changed-{data}'
-                self._send_mock(msg, ip)
+                self._send_mock(msg, new_ip)
                 self.ips[new_ip] = self.ips[ip]
                 del(self.ips[ip])
 
             elif cmd.startswith('PCsetIP'):
                 new_ip = cmd.split('_')[1]
-                data = data.replace('.', '')
+                data = new_ip.replace('.', '')
                 msg = f'PC_IP_changed-{data}'
                 self._send_mock(msg, ip)
 
