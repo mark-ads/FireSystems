@@ -107,7 +107,7 @@ class Backend(QObject):
             parts = data.split('-', 1)
             right = parts[1].strip()
             ip = right.split()[0]   
-            self.logs.append(f'[{get_time()}][⚠️Предупреждение] Контроллер теперь настроены на IP {ip}. Поменяйте адрес компьютера в настройках Windows.')
+            self.logs.append(f'[{get_time()}][⚠️Предупреждение] Контроллер теперь настроен на IP {ip}. Поменяйте адрес компьютера в настройках Windows.')
             self.logger.add_log('WARN', f'[{self.slot}] ({data}), новый адрес для приема команд и отправки строк: {ip}')
         elif data.startswith('OK_P1_'):
             parts = data.split('_')

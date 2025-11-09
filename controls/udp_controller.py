@@ -99,7 +99,7 @@ class UdpController(QObject):
 
     def set_arduino_ip(self, value: str):
         if self.sys_ip == value:
-            self.logger.add_log('WARN', f'Попытка присвоить настроить прием Ардуино на свой же айпи: {value}')
+            self.logger.add_log('WARN', f'Попытка настроить прием Ардуино на свой же айпи: {value}')
             return
         self.logger.add_log('INFO', f'Command = set_arduino_ip: {value}')
         self._send_command(f'MKsetIP_{value}')
