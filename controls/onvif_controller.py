@@ -1,9 +1,6 @@
 from queue import Queue
-from types import SimpleNamespace
 from onvif import ONVIFCamera
-from PyQt5.QtCore import QThread, pyqtSignal, QTimer
-from zeep import xsd
-from typing import Literal
+from PyQt5.QtCore import QThread, pyqtSignal
 from config import Config
 from logs import MultiLogger
 from models import Command, Slot, System
