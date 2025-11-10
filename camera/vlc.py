@@ -10,7 +10,6 @@ from models import Slot, System
 class VlcQtRegistrator:
     def __init__(self, logger: MultiLogger):
         self.logger = logger.get_logger('app')
-        self.logger.add_log('DEBUG', f'V2.5')
         self.vlc_qt_path = os.path.join(os.getcwd(), "vlc")
         self.plugins_path = os.path.join(self.vlc_qt_path, "plugins")
         os.environ["PATH"] = self.vlc_qt_path + ";" + self.plugins_path + ";" + os.environ.get("PATH", "")
