@@ -75,7 +75,15 @@ class Config(QObject):
 
     def add_logger(self, logger):
         self.logger = logger.get_logger('config')
+        self.log_version()
 
+    def log_version(self):
+        try:
+            with open('VERSION', 'r', encoding='utf-8') as f:
+                version = f.read().strip()
+            self.logger.add_log('INFO', f'V: {version}')
+        except Exception as e:
+            self.logger.add_log('INFO', f'Не удалось считать версию приложения: {e}')
 
     def add_system(self):
         self._lock.lockForWrite()
@@ -96,7 +104,6 @@ class Config(QObject):
             return new_key
         finally:
             self._lock.unlock()
-
 
     def remove_system(self, key_to_remove: str):
         self._lock.lockForWrite()
