@@ -6,6 +6,14 @@
 К каждому котлу подключено по два зонда, с передней и задней стороны. Ардуино управляет сервоприводами, заслонками и т.д., а камера погружается внутрь котла. Приложение одновременно подключается к двум зондам одного котла, но поддерживает одновременное подключение до четырёх котлов.
 
 ## Интерфейс приложения
+<p align="center">
+  <img src="https://raw.githubusercontent.com/mark-ads/Firesystems/refs/heads/master/screenshots/SystemScreen.png" width="24%" />
+  <img src="https://raw.githubusercontent.com/mark-ads/Firesystems/refs/heads/master/screenshots/TechScreen.png" width="24%" />
+  <img src="https://raw.githubusercontent.com/mark-ads/Firesystems/refs/heads/master/screenshots/SettingsScreen.png" width="24%" />
+  <img src="https://raw.githubusercontent.com/mark-ads/Firesystems/refs/heads/master/screenshots/NavPanelScreen.png" width="24%" />
+</p>
+
+Интерфейс разрабатывался под разрешение 1920×1080.
 
 ## Ключевые технологии
 
