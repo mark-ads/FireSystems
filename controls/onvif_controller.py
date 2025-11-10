@@ -1,5 +1,6 @@
 from queue import Queue
 from onvif import ONVIFCamera
+from zeep import xsd
 from PyQt5.QtCore import QThread, pyqtSignal
 from config import Config
 from logs import MultiLogger
