@@ -1,3 +1,14 @@
+# This file is based on the original source code from:
+# https://github.com/OpenIPC/python-dvr
+#
+# Original file name: dvrip.py
+# Original author: OpenIPC project contributors
+# License: MIT
+#
+# This modified version is part of the FireSystems project.
+# Modifications and integration by Mark Ads (https://github.com/mark-ads)
+# License for FireSystems: GPL v3
+
 import os
 import struct
 import json
