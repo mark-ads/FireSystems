@@ -30,7 +30,6 @@ class UdpMocker(QObject):
             ip = str(zond.back.arduino.ip)
             if ip not in self.ips:
                 self.ips[ip] = {'MOD' : 0, "angle" : 0, 'dir' : 0}
-        print(self.ips)
 
     def _send_mock(self, data, ip):
         data = f'{data}*{ip}'.encode()
