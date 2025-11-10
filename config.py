@@ -74,7 +74,6 @@ class Config(QObject):
         return self.systems[key]
 
     def add_logger(self, logger):
-        from logs import MultiLogger
         self.logger = logger.get_logger('config')
 
 
