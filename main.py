@@ -1,12 +1,12 @@
 import sys
-from app import create_app
-from PyQt5.QtWidgets import QApplication
+
+from app import App
 
 
 def main():
-    app = QApplication(sys.argv)
-    engine = create_app(app)
+    app = App(sys.argv)
     sys.exit(app.exec_())
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()
