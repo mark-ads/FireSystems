@@ -1,31 +1,47 @@
-from ruamel.yaml import YAML
-from pathlib import Path
-from PyQt5.QtCore import QObject, pyqtSignal, QReadWriteLock
-from models import ArduinoConfig, Settings
-from pydantic import ValidationError
 from collections import OrderedDict
-from models import ZondPair, CameraConfig
-from typing import Union
+from pathlib import Path
 
+from pydantic import ValidationError
+from PyQt5.QtCore import QObject, QReadWriteLock, pyqtSignal
+from ruamel.yaml import YAML
+
+from models import ArduinoConfig, CameraConfig, Settings, ZondPair
 
 yaml = YAML()
 yaml.indent(mapping=2, sequence=4, offset=2)
 yaml.default_flow_style = False
 
-class Config(QObject):
 
+class Config(QObject):
+    """
+    Класс для работы с файлом settings.yaml.
+
+    Загружает, хранит, предоставляет и сохраняет настройки.
+    Создаётся один экземпляр класса, доступ к которому имеют другие
+    классы приложения.
+    Потокобезопасен.
+    """
+
+    SETTINGS_FILE = "settings.yaml"
     settingsChanged = pyqtSignal()
 
-    def __init__(self, path='settings.yaml'):
+    def __init__(
+        self,
+    ):
         super().__init__()
         self._lock = QReadWriteLock()
-        self.path = Path(path)
-        self.settings = {}
+        self.path = Path(self.SETTINGS_FILE)
         self.load()
         self.logger = None
-        print('Конфиг загружен')
+        print("Конфиг загружен")
 
-    def load(self):
+    def load(self) -> None:
+        """
+        Загрузить настройки из файла настроек.
+
+        Если файл настроек поврежден, невалиден, пуст или отсутствует -
+        использовать стандартные настройки.
+        """
         self._lock.lockForWrite()
         try:
             if self.path.exists():
@@ -38,54 +54,72 @@ class Config(QObject):
                     return
 
                 try:
-                    self.settings = Settings.parse_obj(raw)
+                    self.settings = Settings.model_validate(raw)
                 except ValidationError as e:
                     print("❌ Ошибка валидации настроек:", e)
                     print("⚠️ Используем стандартные настройки.")
                     self.use_defaults()
 
             else:
-                print("⚠️ Файл настроек не найден. Используем и сохраняем стандартные настройки.")
+                print(
+                    "⚠️ Файл настроек не найден. Используем и сохраняем стандартные настройки."
+                )
                 self.use_defaults()
         finally:
             self._save_unlocked()
             self._lock.unlock()
 
-    def save(self):
+    def save(self) -> None:
+        """Сохранить настройки в файл с мьютексом."""
         self._lock.lockForWrite()
         try:
-            with open(self.path, 'w', encoding="utf-8") as f:
+            with open(self.path, "w", encoding="utf-8") as f:
                 yaml.dump(self.settings.model_dump(mode="json"), f)
         finally:
             self._lock.unlock()
 
-    def _save_unlocked(self):
-        with open(self.path, 'w', encoding="utf-8") as f:
+    def _save_unlocked(self) -> None:
+        """Сохранить настройки в файл без блокировки мьютексом."""
+        with open(self.path, "w", encoding="utf-8") as f:
             yaml.dump(self.settings.model_dump(mode="json"), f)
 
-    def use_defaults(self):
+    def use_defaults(self) -> None:
+        """Загрузить стандартные настройки из модели."""
         self.settings = Settings()
 
     @property
-    def systems(self) -> OrderedDict[str, ZondPair]:
+    def systems(self) -> dict[str, ZondPair]:
+        """Свойство для облегченного доступа к системам."""
         return self.settings.zond_pairs
 
     def __getitem__(self, key: str) -> ZondPair:
+        """Получить текущую систему."""
         return self.systems[key]
 
-    def add_logger(self, logger):
-        self.logger = logger.get_logger('config')
+    def add_logger(self, logger) -> None:
+        """Добавить логгер в класс."""
+        self.logger = logger.get_logger("config")
         self.log_version()
 
-    def log_version(self):
+    def log_version(self) -> None:
+        """Добавить в логи текущую версию программы из VESION."""
         try:
-            with open('VERSION', 'r', encoding='utf-8') as f:
+            with open("VERSION", "r", encoding="utf-8") as f:
                 version = f.read().strip()
-            self.logger.add_log('INFO', f'V: {version}')
+            if self.logger:
+                self.logger.add_log("INFO", f"V: {version}")
         except Exception as e:
-            self.logger.add_log('INFO', f'Не удалось считать версию приложения: {e}')
+            if self.logger:
+                self.logger.add_log(
+                    "INFO", f"Не удалось считать версию приложения: {e}"
+                )
 
-    def add_system(self):
+    def add_system(self) -> str | None:
+        """
+        Добавить новую систему в память и файл настроек.
+
+        Система добавляется с последующим индексом. Сохраняется в настройки.
+        """
         self._lock.lockForWrite()
         try:
             existing_keys = list(self.settings.zond_pairs.keys())
@@ -93,19 +127,20 @@ class Config(QObject):
                 return None
 
             next_index = len(existing_keys) + 1
-            new_key = f'system_{next_index}'
+            new_key = f"system_{next_index}"
 
-            self.settings.zond_pairs[new_key] = ZondPair(name=f'Котёл {next_index}')
+            self.settings.zond_pairs[new_key] = ZondPair(name=f"Котёл {next_index}")
             self._save_unlocked()
 
             if self.logger:
-                self.logger.add_log('WARN', f'Создана новая система {new_key}')
+                self.logger.add_log("WARN", f"Создана новая система {new_key}")
 
             return new_key
         finally:
             self._lock.unlock()
 
-    def remove_system(self, key_to_remove: str):
+    def remove_system(self, key_to_remove: str) -> None:
+        """Удалить систему из памяти и файла настроек. Пересчитать индексы."""
         self._lock.lockForWrite()
 
         if len(list(self.settings.zond_pairs.keys())) == 1:
@@ -115,7 +150,10 @@ class Config(QObject):
         try:
             if key_to_remove not in self.settings.zond_pairs:
                 if self.logger:
-                    self.logger.add_log('ERROR', f'remove_system(): Нет системы с ключом "{key_to_remove}"')
+                    self.logger.add_log(
+                        "ERROR",
+                        f'remove_system(): Нет системы с ключом "{key_to_remove}"',
+                    )
                 return
 
             # Удаляем выбранную систему
@@ -123,34 +161,46 @@ class Config(QObject):
 
             # Перенумеровываем оставшиеся
             new_pairs = OrderedDict()
-            for idx, (old_key, zond) in enumerate(self.settings.zond_pairs.items(), start=1):
-                new_key = f'system_{idx}'
+            for idx, zond in enumerate(self.settings.zond_pairs.values(), start=1):
+                new_key = f"system_{idx}"
                 new_pairs[new_key] = zond
             self.settings.zond_pairs = new_pairs
 
             self._save_unlocked()
 
             if self.logger:
-                self.logger.add_log('INFO', f'Система "{key_to_remove}" удалена и ключи перенумерованы')
+                self.logger.add_log(
+                    "INFO", f'Система "{key_to_remove}" удалена и ключи перенумерованы'
+                )
         finally:
             self._lock.unlock()
 
-    def get_str(self, sys_key: str, *path: str) -> str:
-        '''Получить настройки. Вводим путь через аргументы path.
+    def get_str(self, sys_key: str, *path: str) -> str | None:
+        """
+        Вернуть настройку в str.
+
+        Вводим путь через аргументы path.
         (hint: system_id, slot, device, field)
-        '''
+        """
         try:
             node = self.settings.zond_pairs[sys_key]
             for part in path:
                 node = getattr(node, part)
             return str(node)
         except AttributeError:
-            self.logger.add_log('ERROR', f'get_str() Нет поля {'->'.join((sys_key,) + path)} в настройках')
+            if self.logger:
+                self.logger.add_log(
+                    "ERROR",
+                    f"get_str() Нет поля {'->'.join((sys_key,) + path)} в настройках",
+                )
         except KeyError:
-            self.logger.add_log('ERROR', f'get_str() Нет системы с ключом "{sys_key}"')
+            if self.logger:
+                self.logger.add_log(
+                    "ERROR", f'get_str() Нет системы с ключом "{sys_key}"'
+                )
 
-    def get_onvif_settings(self, sys_key: str, slot: str, field: str) -> float:
-        '''Получить числовую настройку камеры (float)'''
+    def get_onvif_settings(self, sys_key: str, slot: str, field: str) -> float | None:
+        """Вернуть числовую настройку камеры (float)."""
         try:
             zond_pair = self.settings.zond_pairs[sys_key]
             pair = getattr(zond_pair, slot)
@@ -160,15 +210,28 @@ class Config(QObject):
             if isinstance(result, float):
                 return result
             else:
-                self.logger.add_log('ERROR', f'get_onvif_settings() Поле {field} не является float (тип: {type(result).__name__})')
+                if self.logger:
+                    self.logger.add_log(
+                        "ERROR",
+                        f"get_onvif_settings() Поле {field} не является float (тип: {type(result).__name__})",
+                    )
 
         except AttributeError:
-            self.logger.add_log('ERROR', f'get_onvif_settings() Нет поля {field} в настройках камеры')
+            if self.logger:
+                self.logger.add_log(
+                    "ERROR",
+                    f"get_onvif_settings() Нет поля {field} в настройках камеры",
+                )
         except KeyError:
-            self.logger.add_log('ERROR', f'get_onvif_settings() Нет системы с ключом "{sys_key}"')
+            if self.logger:
+                self.logger.add_log(
+                    "ERROR", f'get_onvif_settings() Нет системы с ключом "{sys_key}"'
+                )
 
-    def get_arduino_settings(self, sys_key: str, slot: str, field: str) -> Union[float, bool]:
-        '''Получить числовую настройку ардуино (float | bool)'''
+    def get_arduino_settings(
+        self, sys_key: str, slot: str, field: str
+    ) -> float | bool | None:
+        """Вернуть настройку зонда."""
         try:
             zond_pair = self.settings.zond_pairs[sys_key]
             pair = getattr(zond_pair, slot)
@@ -178,40 +241,64 @@ class Config(QObject):
             if isinstance(result, float) or isinstance(result, bool):
                 return result
             else:
-                self.logger.add_log('ERROR', f'Поле {field} не является float или bool (тип: {type(result).__name__})')
+                if self.logger:
+                    self.logger.add_log(
+                        "ERROR",
+                        f"Поле {field} не является float или bool (тип: {type(result).__name__})",
+                    )
 
         except AttributeError:
-            self.logger.add_log('ERROR', f'get_arduino_settings() Нет поля {field} в настройках ардуино')
+            if self.logger:
+                self.logger.add_log(
+                    "ERROR",
+                    f"get_arduino_settings() Нет поля {field} в настройках ардуино",
+                )
         except KeyError:
-            self.logger.add_log('ERROR', f'get_arduino_settings() Нет системы с ключом "{sys_key}"')
+            if self.logger:
+                self.logger.add_log(
+                    "ERROR", f'get_arduino_settings() Нет системы с ключом "{sys_key}"'
+                )
 
-    def get(self, sys_key: str, *path: str) -> Union[int, float, str]:
-        '''Получить настройку не меняя и не проверяя тип
+    def get(self, sys_key: str, *path: str) -> int | float | str | None:
+        """
+        Вернуть настройку не меняя и не проверяя тип.
+
         (hint: system_id, slot, device, field)
-        '''
+        """
         try:
             node = self.settings.zond_pairs[sys_key]
             for part in path:
                 node = getattr(node, part)
-            return node
+            if isinstance(node, (int, float, str)):
+                return node
         except AttributeError:
-            self.logger.add_log('ERROR', f"get() Нет поля {'->'.join((sys_key,) + path)} в настройках")
+            if self.logger:
+                self.logger.add_log(
+                    "ERROR",
+                    f"get() Нет поля {'->'.join((sys_key,) + path)} в настройках",
+                )
         except KeyError:
-            self.logger.add_log('ERROR', f'get() Нет системы с ключом "{sys_key}"')
+            if self.logger:
+                self.logger.add_log("ERROR", f'get() Нет системы с ключом "{sys_key}"')
 
-    def get_sys_settings(self, *path: str) -> str:
-        '''Получить настроки программы
-        (hint: field)'''
+    def get_sys_settings(self, *path: str) -> str | None:
+        """
+        Вернуть настроку ПО в str.
+
+        (hint: field)"""
         try:
             node = self.settings.program_settings
             for part in path:
                 node = getattr(node, part)
                 return str(node)
         except AttributeError:
-            self.logger.add_log('ERROR', f'get_sys_settings() Нет поля {path} в настройках')
+            if self.logger:
+                self.logger.add_log(
+                    "ERROR", f"get_sys_settings() Нет поля {path} в настройках"
+                )
 
-    def get_sys_settings_bool(self, *path: str) -> bool:
-        '''Получить настроки программы'''
+    def get_sys_settings_bool(self, *path: str) -> bool | None:
+        """Вернуть настроку программы в bool."""
         try:
             node = self.settings.program_settings
             for part in path:
@@ -219,12 +306,15 @@ class Config(QObject):
             if isinstance(node, bool):
                 return node
         except AttributeError:
-            self.logger.add_log('ERROR', f'get_sys_settings() Нет поля {path} в настройках')
+            if self.logger:
+                self.logger.add_log(
+                    "ERROR", f"get_sys_settings() Нет поля {path} в настройках"
+                )
 
-    def set(self, sys_key: str, *path: str, value: Union[int, float, bool]):
-        '''
-        Устанавливает новое значение по указанному пути и сохраняет конфиг
-        '''
+    def set(self, sys_key: str, *path: str, value: int | float | bool) -> None:
+        """
+        Установить новое значение по указанному пути и сохранить.
+        """
         self._lock.lockForWrite()
         try:
             node = self.settings.zond_pairs[sys_key]
@@ -232,22 +322,31 @@ class Config(QObject):
                 node = getattr(node, part)
             setattr(node, path[-1], value)
             self._save_unlocked()
-            self.logger.add_log('DEBUG', f'Изменения сохранены: {node}{path[-1]} = {value}')
+            if self.logger:
+                self.logger.add_log(
+                    "DEBUG", f"Изменения сохранены: {node}{path[-1]} = {value}"
+                )
         finally:
             self._lock.unlock()
-    def set_sys(self, param: str, value: Union[int, float, bool, str]):
-        '''
-        Устанавливает новое значение для системных настроек
-        '''
+
+    def set_sys(self, param: str, value: int | float | bool | str) -> None:
+        """
+        Установить новое значение для системных настроек и сохранить.
+        """
         self._lock.lockForWrite()
         try:
             if hasattr(self.settings.program_settings, param):
                 setattr(self.settings.program_settings, param, value)
                 self._save_unlocked()
                 if self.logger:
-                    self.logger.add_log('DEBUG', f'Изменения сохранены: program_settings.{param} = {value}')
+                    self.logger.add_log(
+                        "DEBUG",
+                        f"Изменения сохранены: program_settings.{param} = {value}",
+                    )
             else:
                 if self.logger:
-                    self.logger.add_log('ERROR', f'Нет параметра "{param}" в program_settings')
+                    self.logger.add_log(
+                        "ERROR", f'Нет параметра "{param}" в program_settings'
+                    )
         finally:
             self._lock.unlock()
